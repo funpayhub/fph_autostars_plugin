@@ -1,9 +1,19 @@
 from __future__ import annotations
 
+from funpayhub.lib.exceptions import ValidationError
 from funpayhub.lib.properties import Properties, StringParameter
 from funpayhub.lib.base_app.properties_flags import TelegramUIEmojiFlag
 
 from funpayhub.app.properties.flags import ParameterFlags
+from pytoniq_core.crypto.keys import mnemonic_is_valid
+
+
+async def mnemonic_validator(val: str) -> None:
+    if not val:
+        return
+
+    if not mnemonic_is_valid(val.split(' ')):
+        raise ValidationError('Невалидная сид фраза.')
 
 
 class AutostarsProperties(Properties):
@@ -56,6 +66,7 @@ class WalletProperties(Properties):
                 description='Сид фраза TON кошелька.',
                 default_value='',
                 flags=[TelegramUIEmojiFlag('🔐'), ParameterFlags.PROTECT_VALUE],
+                validator=mnemonic_validator,
             )
         )
 

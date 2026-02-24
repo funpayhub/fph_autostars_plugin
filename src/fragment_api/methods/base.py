@@ -17,7 +17,7 @@ class FragmentMethod[ReturnT](BaseModel, ABC):
 
         @property
         @abstractmethod
-        def __model_to_build__(self) -> type:
+        def __model_to_build__(self) -> type[FragmentResponse]:
             pass
 
     @computed_field

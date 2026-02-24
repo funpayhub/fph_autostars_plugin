@@ -4,10 +4,9 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
-from funpaybotengine.dispatching import NewMessageEvent, NewSaleEvent
 from pytoniq import LiteClient
 
-from funpayhub.lib.hub.text_formatters import Formatter
+
 from funpayhub.lib.hub.text_formatters.category import InCategory
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.translater import _ru
@@ -23,6 +22,7 @@ from .fragment_api import FragmentAPI, FragmentAPIProvider
 from .transferer_service import TransferrerService
 from .formatters import StarsOrderFormatter, StarsOrderCategory, StarsOrderFormatterContext
 from funpayhub.app.formatters import GeneralFormattersCategory
+from .fph import router as fph_router
 
 
 if TYPE_CHECKING:
@@ -30,6 +30,8 @@ if TYPE_CHECKING:
     from funpaybotengine import Router as FPRouter
     from .types import StarsOrder
     from funpayhub.lib.properties import Properties
+    from funpayhub.app.dispatching import Router as HubRouter
+    from funpayhub.lib.hub.text_formatters import Formatter
 
 
 class AutostarsPlugin(Plugin):
@@ -53,6 +55,9 @@ class AutostarsPlugin(Plugin):
     async def funpay_routers(self) -> FPRouter | list[FPRouter]:
         return funpay_router
 
+    async def hub_routers(self) -> HubRouter | list[HubRouter]:
+        return fph_router
+
     async def commands(self) -> Command | list[Command] | None:
         return [
             Command(
@@ -70,8 +75,8 @@ class AutostarsPlugin(Plugin):
         self.hub.funpay.text_formatters.add_category(StarsOrderCategory)
 
     async def post_setup(self) -> None:
-        # logger = logging.getLogger(LiteClient.__name__)
-        # logger.setLevel(logging.WARNING)
+        logger = logging.getLogger(LiteClient.__name__)
+        logger.setLevel(logging.WARNING)
 
         self.storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:

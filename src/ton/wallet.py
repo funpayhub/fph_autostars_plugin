@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any, Self
 from dataclasses import dataclass
 
 from pytoniq import Address, LiteClient, WalletV5R1
-from ..utils import get_mainnet_config
+from autostars.src.utils import get_mainnet_config
 
 if TYPE_CHECKING:
-    from ..fragment_api.types import BuyStarsLink
+    from autostars.src.fragment_api.types import BuyStarsLink
 
 
 @dataclass
