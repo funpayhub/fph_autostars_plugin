@@ -100,7 +100,7 @@ class TransferrerService:
 
             if transfers:
                 try:
-                    hash = await self.wallet_provider.wallet.transfer(*transfers)
+                    hash = await wallet.transfer(*transfers)
                 except Exception:
                     self.logger.error(
                         'Не удалось выполнить перевод TON для заказов %s.',

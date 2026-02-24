@@ -22,7 +22,10 @@ from .fragment_api import FragmentAPI, FragmentAPIProvider
 from .transferer_service import TransferrerService
 from .formatters import StarsOrderFormatter, StarsOrderCategory, StarsOrderFormatterContext
 from funpayhub.app.formatters import GeneralFormattersCategory
+from funpayhub.lib.properties import ListParameter
 from .fph import router as fph_router
+from .other import NotificationChannels
+from .telegram.ui import BUILDERS
 
 
 if TYPE_CHECKING:
@@ -32,6 +35,7 @@ if TYPE_CHECKING:
     from funpayhub.lib.properties import Properties
     from funpayhub.app.dispatching import Router as HubRouter
     from funpayhub.lib.hub.text_formatters import Formatter
+    from funpayhub.lib.telegram.ui import MenuBuilder
 
 
 class AutostarsPlugin(Plugin):
@@ -44,6 +48,23 @@ class AutostarsPlugin(Plugin):
 
         self.props: AutostarsProperties | None = None
         self.transferrer_service: TransferrerService | None = None
+
+    async def setup_properties(self) -> None:
+        self.hub.properties.telegram.notifications.attach_node(
+            ListParameter(
+                id=NotificationChannels.INFO,
+                name='Autostars: общее',
+                description='Общие уведомления плагина Autostars.'
+            )
+        )
+
+        self.hub.properties.telegram.notifications.attach_node(
+            ListParameter(
+                id=NotificationChannels.ERROR,
+                name='Autostars: ошибки',
+                description='Уведомления об ошибках в плагине Autostars.',
+            )
+        )
 
     async def properties(self) -> Properties:
         self.props = AutostarsProperties()
@@ -73,6 +94,9 @@ class AutostarsPlugin(Plugin):
 
     async def setup_formatters(self) -> None:
         self.hub.funpay.text_formatters.add_category(StarsOrderCategory)
+
+    async def menus(self) -> type[MenuBuilder] | list[type[MenuBuilder]]:
+        return BUILDERS
 
     async def post_setup(self) -> None:
         logger = logging.getLogger(LiteClient.__name__)

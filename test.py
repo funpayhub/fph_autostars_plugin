@@ -143,14 +143,10 @@ def fake_event(
     return new_sale_event
 
 
-def fake_events_stack(valid_username: bool = False, amount: int = 1) -> EventsStack:
+def fake_events_stack(amount: int = 1) -> EventsStack:
     events = []
     for i in range(amount):
-        events.append(
-            fake_event(
-                valid_username=valid_username if not valid_username else bool(random.randint(0, 1))
-            )
-        )
+        events.append(fake_event())
 
     events_stack = EventsStack(events=())
     events.insert(0, NewEventsPack(object=events_stack.id))
