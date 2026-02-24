@@ -34,7 +34,9 @@ class Storage(ABC):
 
     @abstractmethod
     async def get_ready_orders(
-        self, instance_id: str, amount: int = 25
+        self,
+        instance_id: str,
+        amount: int = 25,
     ) -> dict[str, StarsOrder]: ...
 
 
@@ -102,7 +104,7 @@ class Sqlite3Storage(Storage):
         await self.raw_query(
             f'INSERT OR REPLACE INTO orders ({keys}) VALUES ({placeholders})',
             *values,
-            commit=False
+            commit=False,
         )
 
         if commit:
@@ -112,7 +114,6 @@ class Sqlite3Storage(Storage):
         for order in orders:
             await self.add_or_update_order(order, commit=False)
         await self._conn.commit()
-
 
     async def get_order(self, order_id: str) -> StarsOrder | None:
         cursor = await self.raw_query('SELECT * FROM orders WHERE order_id = ?', order_id)
@@ -167,7 +168,11 @@ class Sqlite3Storage(Storage):
         }
 
     async def raw_query(
-        self, query: str, *args: Any, cursor: Cursor | None = None, commit: bool = True
+        self,
+        query: str,
+        *args: Any,
+        cursor: Cursor | None = None,
+        commit: bool = True,
     ) -> Cursor:
         cursor = cursor if cursor is not None else self._conn
         cursor = await cursor.execute(query, args)

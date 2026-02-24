@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __all__ = ['get_mainnet_config']
 
 from aiohttp import ClientSession

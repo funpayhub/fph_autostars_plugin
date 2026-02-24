@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+
 __all__ = ['StarsOrderMenuContext']
 
 
 from typing import TYPE_CHECKING
+from dataclasses import dataclass
 
 from funpayhub.lib.telegram.ui import MenuContext
-from dataclasses import dataclass
+
 
 if TYPE_CHECKING:
     from autostars.src.types import StarsOrder

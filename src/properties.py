@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from pytoniq_core.crypto.keys import mnemonic_is_valid
+
 from funpayhub.lib.exceptions import ValidationError
 from funpayhub.lib.properties import Properties, StringParameter
 from funpayhub.lib.base_app.properties_flags import TelegramUIEmojiFlag
 
 from funpayhub.app.properties.flags import ParameterFlags
-from pytoniq_core.crypto.keys import mnemonic_is_valid
 
 
 async def mnemonic_validator(val: str) -> None:
@@ -46,7 +47,7 @@ class WalletProperties(Properties):
                 description='Cookie Fragment аккаунта.',
                 default_value='',
                 flags=[TelegramUIEmojiFlag('🍪'), ParameterFlags.PROTECT_VALUE],
-            )
+            ),
         )
 
         self.fragment_hash = self.attach_node(
@@ -56,7 +57,7 @@ class WalletProperties(Properties):
                 description='API hash Fragment аккаунта.',
                 default_value='',
                 flags=[TelegramUIEmojiFlag('#️⃣'), ParameterFlags.PROTECT_VALUE],
-            )
+            ),
         )
 
         self.mnemonics = self.attach_node(
@@ -67,7 +68,7 @@ class WalletProperties(Properties):
                 default_value='',
                 flags=[TelegramUIEmojiFlag('🔐'), ParameterFlags.PROTECT_VALUE],
                 validator=mnemonic_validator,
-            )
+            ),
         )
 
 
@@ -87,7 +88,7 @@ class MessagesProperties(Properties):
                 description='Сообщение, которое будет отправлено в чат покупателю, когда транзакция будет инициализирована.',
                 default_value='',
                 flags=[TelegramUIEmojiFlag('♻️')],
-            )
+            ),
         )
 
         self.transaction_completed_message = self.attach_node(
@@ -102,7 +103,7 @@ class MessagesProperties(Properties):
                     '#️⃣ Хэш TON транзакции: $autostars<ton_transaction_id>.'
                 ),
                 flags=[TelegramUIEmojiFlag('✅')],
-            )
+            ),
         )
 
         self.transaction_failed_message = self.attach_node(
@@ -115,7 +116,7 @@ class MessagesProperties(Properties):
                     'Продавец уведомлен и придет на помощь как только сможет!'
                 ),
                 flags=[TelegramUIEmojiFlag('❌')],
-            )
+            ),
         )
 
         self.username_not_found_message = self.attach_node(
@@ -129,7 +130,7 @@ class MessagesProperties(Properties):
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
                 flags=[TelegramUIEmojiFlag('👤')],
-            )
+            ),
         )
 
         self.payload_message = self.attach_node(
@@ -139,5 +140,5 @@ class MessagesProperties(Properties):
                 description='Сообщение, которое будет вставлено в комментарий к транзакции.',
                 default_value='',
                 flags=[TelegramUIEmojiFlag('📝')],
-            )
+            ),
         )

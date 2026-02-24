@@ -63,7 +63,7 @@ class StarsOrder(BaseModel):
             return int(match.group(1))
         except Exception as e:
             raise ValidationError(
-                f'Unable to extract stars amount from {self.order_preview.title!r}.'
+                f'Unable to extract stars amount from {self.order_preview.title!r}.',
             ) from e
 
     @computed_field

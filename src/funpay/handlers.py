@@ -8,12 +8,13 @@ from funpaybotengine import Router
 from funpaybotengine.types.enums import SubcategoryType
 
 from funpayhub.lib.translater import _ru
+from funpayhub.lib.hub.text_formatters.category import InCategory
+
+from funpayhub.app.formatters import GeneralFormattersCategory
 
 from ..exceptions import FragmentResponseError
-from ..formatters import StarsOrderFormatterContext, StarsOrderCategory
-from funpayhub.app.formatters import GeneralFormattersCategory
+from ..formatters import StarsOrderCategory, StarsOrderFormatterContext
 from ..types.enums import ErrorTypes, StarsOrderStatus
-from funpayhub.lib.hub.text_formatters.category import InCategory
 
 
 if TYPE_CHECKING:
@@ -27,8 +28,8 @@ if TYPE_CHECKING:
     from ..types import StarsOrder
     from ..plugin import AutostarsPlugin
     from ..storage import Storage
-    from ..fragment_api import FragmentAPIProvider as FragmentAPI
     from ..properties import AutostarsProperties
+    from ..fragment_api import FragmentAPIProvider as FragmentAPI
 
 
 from .utils import extract_stars_orders
@@ -45,7 +46,7 @@ async def check_usernames(
     orders: list[StarsOrder],
     storage: Storage,
     api: FragmentAPI,
-    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]
+    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ):
     invalid_username: list[StarsOrder] = []
     ready: list[StarsOrder] = []
@@ -96,7 +97,9 @@ async def check_usernames(
     # todo: send notification in chat if error occurred while fetching username
 
 
-async def on_username_not_found(order: StarsOrder, plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]) -> None:
+async def on_username_not_found(
+    order: StarsOrder, plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]
+) -> None:
     text = plugin.properties.messages.username_not_found_message.value
     if not text:
         return
@@ -112,12 +115,12 @@ async def on_username_not_found(order: StarsOrder, plugin: LoadedPlugin[Autostar
         pack = await plugin.plugin.hub.funpay.text_formatters.format_text(
             text=text,
             context=ctx,
-            query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory))
+            query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
         )
     except Exception:
         plugin.plugin.logger.error(
             _ru('Не удалось форматировать сообщение о неверном telegram юзернейме.'),
-            exc_info=True
+            exc_info=True,
         )
         # todo: notification
         return
@@ -127,7 +130,7 @@ async def on_username_not_found(order: StarsOrder, plugin: LoadedPlugin[Autostar
     except Exception:
         plugin.plugin.logger.error(
             _ru('Не удалось отправить сообщение о неверном telegram юзернейме.'),
-            exc_info=True
+            exc_info=True,
         )
         # todo: notification
         return

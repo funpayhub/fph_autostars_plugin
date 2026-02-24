@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import time
 import asyncio
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Self
 from dataclasses import dataclass
 
 from pytoniq import Address, LiteClient, WalletV5R1
 from autostars.src.utils import get_mainnet_config
+
 
 if TYPE_CHECKING:
     from autostars.src.fragment_api.types import BuyStarsLink
@@ -132,4 +133,6 @@ class Wallet:
                     return i.cell.hash.hex()
             else:
                 if t > valid_until:
-                    raise TimeoutError(f"Transfer {hash} timed out after {valid_until - t} seconds")
+                    raise TimeoutError(
+                        f'Transfer {hash} timed out after {valid_until - t} seconds'
+                    )

@@ -1,22 +1,47 @@
-from funpaybotengine.dispatching import NewMessageEvent, NewSaleEvent, NewEventsPack
-from funpaybotengine.runner import EventsStack
+from __future__ import annotations
 
-from funpaybotengine.types import Message, OrderPreview
-from funpayparsers.parsers import MessagesParser, MessagesParsingOptions, \
-    OrderPreviewsParsingOptions, OrderPreviewsParser
 import random
 import string
 
+from funpaybotengine.types import Message, OrderPreview
+from funpayparsers.parsers import (
+    MessagesParser,
+    OrderPreviewsParser,
+    MessagesParsingOptions,
+    OrderPreviewsParsingOptions,
+)
+from funpaybotengine.runner import EventsStack
+from funpaybotengine.dispatching import NewSaleEvent, NewEventsPack, NewMessageEvent
 
 
 ADJECTIVES = [
-    "fast", "dark", "silent", "frozen", "wild", "lucky",
-    "ghost", "red", "blue", "iron", "cyber", "shadow"
+    'fast',
+    'dark',
+    'silent',
+    'frozen',
+    'wild',
+    'lucky',
+    'ghost',
+    'red',
+    'blue',
+    'iron',
+    'cyber',
+    'shadow',
 ]
 
 NOUNS = [
-    "wolf", "raven", "fox", "tiger", "dragon", "hawk",
-    "ninja", "hunter", "storm", "byte", "phantom", "viper"
+    'wolf',
+    'raven',
+    'fox',
+    'tiger',
+    'dragon',
+    'hawk',
+    'ninja',
+    'hunter',
+    'storm',
+    'byte',
+    'phantom',
+    'viper',
 ]
 
 
@@ -29,13 +54,13 @@ def generate_username(
     adjective = random.choice(ADJECTIVES)
     noun = random.choice(NOUNS)
 
-    username = f"{adjective.capitalize()}{noun.capitalize()}"
+    username = f'{adjective.capitalize()}{noun.capitalize()}'
 
     if custom_prefix:
-        username = f"{custom_prefix}{username}"
+        username = f'{custom_prefix}{username}'
 
     if custom_suffix:
-        username = f"{username}{custom_suffix}"
+        username = f'{username}{custom_suffix}'
 
     if use_number:
         number = ''.join(random.choices(string.digits, k=number_length))
@@ -94,7 +119,7 @@ ORDER_HTML = """
 def fake_event(
     telegram_username: str | None = None,
     amount: int | None = None,
-    pcs: int | None = None
+    pcs: int | None = None,
 ) -> NewSaleEvent:
     username = generate_username()
     order_id = 'AST' + ''.join(random.choices(string.ascii_uppercase, k=5))
@@ -114,7 +139,7 @@ def fake_event(
         order_id=order_id,
         telegram_username=telegram_username,
         pcs=pcs,
-        stars_amount=stars_amount
+        stars_amount=stars_amount,
     )
 
     order_html_formatted = ORDER_HTML.format(
@@ -122,7 +147,7 @@ def fake_event(
         username=username,
         telegram_username=telegram_username,
         pcs=pcs,
-        stars_amount=stars_amount
+        stars_amount=stars_amount,
     )
 
     msg_options = MessagesParsingOptions(empty_raw_source=True)
@@ -137,7 +162,7 @@ def fake_event(
     new_sale_event = NewSaleEvent(
         object=message,
         tag='autostars',
-        related_new_message_event=new_msg_event
+        related_new_message_event=new_msg_event,
     )
     new_sale_event._order_preview = order
     return new_sale_event

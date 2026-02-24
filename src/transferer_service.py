@@ -16,6 +16,7 @@ from .fragment_api.types import BuyStarsLink
 
 if TYPE_CHECKING:
     from funpayhub.app.main import FunPayHub as FPH
+
     from .types import StarsOrder
 
 
@@ -78,12 +79,14 @@ class TransferrerService:
                     orders_to_transfer.append(i)
                 except Exception:
                     self.logger.error(
-                        _ru('Не удалось получить ссылку на оплату звезд для заказа %s '
-                            '(telegram: %s | recipient id: %s).'),
+                        _ru(
+                            'Не удалось получить ссылку на оплату звезд для заказа %s '
+                            '(telegram: %s | recipient id: %s).'
+                        ),
                         i.order_id,
                         i.telegram_username,
                         i.recipient_id,
-                        exc_info=True
+                        exc_info=True,
                     )
                     i.status = StarsOrderStatus.ERROR
                     i.error = ErrorTypes.UNKNOWN
@@ -105,7 +108,7 @@ class TransferrerService:
                     self.logger.error(
                         'Не удалось выполнить перевод TON для заказов %s.',
                         [i.order_id for i in orders_to_transfer],
-                        exc_info=True
+                        exc_info=True,
                     )
                     for i in orders_to_transfer:
                         i.status = StarsOrderStatus.ERROR
@@ -115,7 +118,7 @@ class TransferrerService:
                     self.logger.info(
                         'Успешно перевел TON для заказов %s. Хэш транзакции: %s.',
                         [i.order_id for i in orders_to_transfer],
-                        hash
+                        hash,
                     )
                     for i in orders_to_transfer:
                         i.status = StarsOrderStatus.DONE

@@ -49,7 +49,10 @@ class Session:
         await self.close()
 
     async def post[ReturnT](
-        self, method: FragmentMethod[ReturnT], cookies: str, hash: str
+        self,
+        method: FragmentMethod[ReturnT],
+        cookies: str,
+        hash: str,
     ) -> ReturnT:
         """
         raises: FragmentSessionError

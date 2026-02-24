@@ -6,36 +6,38 @@ from typing import TYPE_CHECKING
 
 from pytoniq import LiteClient
 
-
-from funpayhub.lib.hub.text_formatters.category import InCategory
 from funpayhub.lib.telegram import Command
+from funpayhub.lib.properties import ListParameter
 from funpayhub.lib.translater import _ru
+from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.plugin import Plugin
+from funpayhub.app.formatters import GeneralFormattersCategory
 
+from .fph import router as fph_router
 from .ton import Wallet, WalletProvider
+from .other import NotificationChannels
 from .funpay import funpay_router
 from .storage import Sqlite3Storage
 from .telegram import ROUTERS
+from .formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
 from .properties import AutostarsProperties
+from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI, FragmentAPIProvider
 from .transferer_service import TransferrerService
-from .formatters import StarsOrderFormatter, StarsOrderCategory, StarsOrderFormatterContext
-from funpayhub.app.formatters import GeneralFormattersCategory
-from funpayhub.lib.properties import ListParameter
-from .fph import router as fph_router
-from .other import NotificationChannels
-from .telegram.ui import BUILDERS
 
 
 if TYPE_CHECKING:
     from aiogram import Router as TGRouter
     from funpaybotengine import Router as FPRouter
-    from .types import StarsOrder
+
     from funpayhub.lib.properties import Properties
-    from funpayhub.app.dispatching import Router as HubRouter
-    from funpayhub.lib.hub.text_formatters import Formatter
     from funpayhub.lib.telegram.ui import MenuBuilder
+    from funpayhub.lib.hub.text_formatters import Formatter
+
+    from funpayhub.app.dispatching import Router as HubRouter
+
+    from .types import StarsOrder
 
 
 class AutostarsPlugin(Plugin):
@@ -54,8 +56,8 @@ class AutostarsPlugin(Plugin):
             ListParameter(
                 id=NotificationChannels.INFO,
                 name='Autostars: общее',
-                description='Общие уведомления плагина Autostars.'
-            )
+                description='Общие уведомления плагина Autostars.',
+            ),
         )
 
         self.hub.properties.telegram.notifications.attach_node(
@@ -63,7 +65,7 @@ class AutostarsPlugin(Plugin):
                 id=NotificationChannels.ERROR,
                 name='Autostars: ошибки',
                 description='Уведомления об ошибках в плагине Autostars.',
-            )
+            ),
         )
 
     async def properties(self) -> Properties:
@@ -118,7 +120,8 @@ class AutostarsPlugin(Plugin):
                 )
             except Exception:
                 self.logger.error(
-                    _ru('Произошла ошибка при подключении к кошельку.'), exc_info=True
+                    _ru('Произошла ошибка при подключении к кошельку.'),
+                    exc_info=True,
                 )
 
         self.transferrer_service = TransferrerService(
@@ -137,7 +140,7 @@ class AutostarsPlugin(Plugin):
                 'autostars_wallet': self.wallet_provider,
                 'autostars_fragment_api': self.fragment_api_provider,
                 'autostars_service': self.transferrer_service,
-            }
+            },
         )
         asyncio.create_task(self.transferrer_service.main_loop())
 
@@ -150,19 +153,19 @@ class AutostarsPlugin(Plugin):
             new_message_event=order.sale_event.related_new_message_event,
             order_event=order.sale_event,
             goods_to_deliver=[],
-            stars_order=order
+            stars_order=order,
         )
 
         try:
             pack = await self.hub.funpay.text_formatters.format_text(
                 text=message,
                 context=ctx,
-                query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory))
+                query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
             )
         except Exception:
             self.logger.error(
                 _ru('Не удалось форматировать сообщение об успешном переводе звёзд.'),
-                exc_info=True
+                exc_info=True,
             )
             # todo: err notification
             return
@@ -172,10 +175,12 @@ class AutostarsPlugin(Plugin):
         except Exception:
             self.logger.error(
                 _ru('Не удалось отправить сообщение об успешном переводе звёзд.'),
-                exc_info=True
+                exc_info=True,
             )
             # todo: send notification
 
     @property
     def ready(self) -> bool:
-        return self.fragment_api_provider.api is not None and self.wallet_provider.wallet is not None
+        return (
+            self.fragment_api_provider.api is not None and self.wallet_provider.wallet is not None
+        )
