@@ -1,0 +1,51 @@
+from funpayhub.app.formatters import NewOrderContext, MessageFormattersCategory, OrderFormattersCategory
+from funpayhub.lib.hub.text_formatters import Formatter
+from funpayhub.lib.hub.text_formatters.category import FormatterCategory
+from .types import StarsOrder
+
+
+class StarsOrderFormatterContext(NewOrderContext):
+    stars_order: StarsOrder
+
+
+DESC = 'Форматтер для заказов Telegram Stars.\n\n'\
+'Позволяет вставлять информацию о заказе, TON транзации и т.д.\n'\
+'Можно использовать во всех сообщениях плагина Telegram Stars.\n\n'\
+'Необходимо использовать с одним обязательным параметром - режимом вставки:\n'\
+'<code>ton_transaction_id</code>, <code>telegram_username</code>, <code>stars_amount</code>.\n\n'\
+'1. <code>$autostars&lt;ton_transaction_id&gt;</code>\n'\
+'Подставляет TON транзакцию, связанную с заказом. Если транзации несуществует '\
+'(например, форматтер используется в сообщении об ошибке), подставляет пустую строку.\n\n'\
+'2. <code>$autostars&lt;telegram_username&gt;</code>\n'\
+'Подставляет Telegram username, который на данный момент привязан к заказу.\n\n'\
+'3. <code>$autostars&lt;stars_amount&gt;</code>\n'\
+'Подставляет общее кол-во звезд, которые были/будут отправлены.\n\n'\
+
+
+class StarsOrderFormatter(
+    Formatter[StarsOrderFormatterContext],
+    key='autostars',
+    name='🌟 Autostars ($autostars)',
+    description=DESC,
+    context_type=StarsOrderFormatterContext
+):
+    def __init__(self, context: StarsOrderFormatterContext, mode: str = '', *args, **kwargs) -> None:
+        super().__init__(context, *args)
+        self.mode = mode
+
+    def format(self) -> str:
+        if self.mode == 'ton_transaction_id':
+            return self.context.stars_order.ton_transaction_id or ''
+        elif self.mode == 'telegram_username':
+            return self.context.stars_order.telegram_username or ''
+        elif self.mode == 'stars_amount':
+            return str(self.context.stars_order.stars_amount)
+        return ''
+
+
+class StarsOrderCategory(FormatterCategory):
+    id = 'autostars'
+    name = 'Заказы Telegram Stars'
+    description = 'Форматтеры, которые можно использовать в ответах к заказам Telegram Stars.'
+    include_formatters = {StarsOrderFormatter.key}
+    include_categories = {MessageFormattersCategory.id, OrderFormattersCategory.id}
