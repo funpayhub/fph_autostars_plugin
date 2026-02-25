@@ -41,7 +41,9 @@ async def _show_order_info(order_id: str, message: Message, storage: Storage, tg
 
 
 @router.message(Command('stars_order_info'))
-async def autostars_offer_info(message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext):
+async def autostars_offer_info(
+    message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext
+):
     args = message.text.split(' ')[1:]
     if not args:
         msg = await StateUIContext(
@@ -56,9 +58,10 @@ async def autostars_offer_info(message: Message, autostars_storage: Storage, tg_
     await _show_order_info(order_id, message, autostars_storage, tg_ui)
 
 
-
 @router.message(states.ViewingOrderInfo.filter(), lambda message: message.text)
-async def autostars_offer_info_from_state(message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext):
+async def autostars_offer_info_from_state(
+    message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext
+):
     obj = await states.ViewingOrderInfo.get(state)
     await states.ViewingOrderInfo.clear(state)
     await _show_order_info(message.text, message, autostars_storage, tg_ui)
@@ -78,12 +81,12 @@ async def _mark_as_done(order_ids: set[str], storage: Storage, translater: Trans
     text = ''
     if done:
         text += translater.translate(
-            '<b>✅ Заказы {orders} помечены как выполненные.</b>\n\n'
+            '<b>✅ Заказы {orders} помечены как выполненные.</b>\n\n',
         ).format(orders=', '.join(f'<code>{i}</code>' for i in done))
 
     if not_found:
         text += translater.translate('<b>⚠️ Не удалось найти заказы {orders}.</b>').format(
-            orders=', '.join(f'<code>{i}</code>' for i in not_found)
+            orders=', '.join(f'<code>{i}</code>' for i in not_found),
         )
     return text
 
@@ -114,7 +117,10 @@ async def mark_as_ready(
 
 @router.message(states.MarkingAsDoneState.filter(), lambda message: message.text)
 async def mark_as_done_from_state(
-    message: Message, autostars_storage: Storage, translater: Translater, state: FSMContext
+    message: Message,
+    autostars_storage: Storage,
+    translater: Translater,
+    state: FSMContext,
 ):
     obj = await states.MarkingAsDoneState.get(state)
     await states.MarkingAsDoneState.clear(state)

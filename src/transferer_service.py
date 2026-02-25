@@ -81,7 +81,7 @@ class TransferrerService:
                     self.logger.error(
                         _ru(
                             'Не удалось получить ссылку на оплату звезд для заказа %s '
-                            '(telegram: %s | recipient id: %s).'
+                            '(telegram: %s | recipient id: %s).',
                         ),
                         i.order_id,
                         i.telegram_username,

@@ -38,7 +38,7 @@ class StarsOrderInfoMenuBuilder(
     async def build(self, ctx: StarsOrderMenuContext) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
         menu.header_text = '🌟 <b>Заказ <a href="https://funpay.com/orders/{order_id}/">{order_id}</a></b>'.format(
-            order_id=ctx.stars_order.order_id
+            order_id=ctx.stars_order.order_id,
         )
         menu.main_text = (
             '<blockquote><b>{message}</b></blockquote>\n\n'

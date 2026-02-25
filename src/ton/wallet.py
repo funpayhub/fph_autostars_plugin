@@ -134,5 +134,5 @@ class Wallet:
             else:
                 if t > valid_until:
                     raise TimeoutError(
-                        f'Transfer {hash} timed out after {valid_until - t} seconds'
+                        f'Transfer {hash} timed out after {valid_until - t} seconds',
                     )

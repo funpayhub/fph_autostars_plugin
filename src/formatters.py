@@ -40,7 +40,11 @@ class StarsOrderFormatter(
     context_type=StarsOrderFormatterContext,
 ):
     def __init__(
-        self, context: StarsOrderFormatterContext, mode: str = '', *args, **kwargs
+        self,
+        context: StarsOrderFormatterContext,
+        mode: str = '',
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(context, *args)
         self.mode = mode

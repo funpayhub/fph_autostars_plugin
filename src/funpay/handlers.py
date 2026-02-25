@@ -98,7 +98,8 @@ async def check_usernames(
 
 
 async def on_username_not_found(
-    order: StarsOrder, plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]
+    order: StarsOrder,
+    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ) -> None:
     text = plugin.properties.messages.username_not_found_message.value
     if not text:
