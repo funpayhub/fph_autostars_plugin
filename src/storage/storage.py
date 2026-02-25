@@ -117,8 +117,11 @@ class Sqlite3Storage(Storage):
 
     async def get_order(self, order_id: str) -> StarsOrder | None:
         cursor = await self.raw_query('SELECT * FROM orders WHERE order_id = ?', order_id)
-        row = dict(await cursor.fetchone())
-        return StarsOrder.model_validate(row) if row else None
+        data = await cursor.fetchone()
+        if not data:
+            return None
+
+        return StarsOrder.model_validate(dict(data))
 
     async def get_orders(
         self,

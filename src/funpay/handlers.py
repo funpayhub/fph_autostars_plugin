@@ -12,9 +12,9 @@ from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.formatters import GeneralFormattersCategory
 
-from ..exceptions import FragmentResponseError
-from ..formatters import StarsOrderCategory, StarsOrderFormatterContext
-from ..types.enums import ErrorTypes, StarsOrderStatus
+from autostars.src.exceptions import FragmentResponseError
+from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
+from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
 
 
 if TYPE_CHECKING:
@@ -25,11 +25,11 @@ if TYPE_CHECKING:
 
     from funpayhub.app.main import FunPayHub as FPH
 
-    from ..types import StarsOrder
-    from ..plugin import AutostarsPlugin
-    from ..storage import Storage
-    from ..properties import AutostarsProperties
-    from ..fragment_api import FragmentAPIProvider as FragmentAPI
+    from autostars.src.types import StarsOrder
+    from autostars.src.plugin import AutostarsPlugin
+    from autostars.src.storage import Storage
+    from autostars.src.properties import AutostarsProperties
+    from autostars.src.fragment_api import FragmentAPIProvider as FragmentAPI
 
 
 from .utils import extract_stars_orders
@@ -48,7 +48,7 @@ async def check_usernames(
     api: FragmentAPI,
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ):
-    invalid_username: list[StarsOrder] = []
+    errored: list[StarsOrder] = []
     ready: list[StarsOrder] = []
 
     async def check_username(order: StarsOrder) -> None:
@@ -61,7 +61,7 @@ async def check_usernames(
                 return
             except FragmentResponseError:
                 order.status = StarsOrderStatus.WAITING_FOR_USERNAME
-                invalid_username.append(order)
+                errored.append(order)
                 asyncio.create_task(on_username_not_found(order, plugin))
                 return
             except Exception:
@@ -69,29 +69,22 @@ async def check_usernames(
         order.status = StarsOrderStatus.ERROR
         order.error = ErrorTypes.UNABLE_TO_FETCH_USERNAME
         order.retries_left = 0
-        invalid_username.append(order)
+        errored.append(order)
 
-    tasks = []
     for order in orders:
         if not order.telegram_username:
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
-            invalid_username.append(order)
+            errored.append(order)
+            continue
 
         if api.api is None:
             order.status = StarsOrderStatus.ERROR
-            order.error = ErrorTypes.UNABLE_TO_FETCH_USERNAME
-            invalid_username.append(order)
+            order.error = ErrorTypes.FRAGMENT_API_NOT_PROVIDED
+            errored.append(order)
             continue
 
-        tasks.append(
-            asyncio.create_task(
-                check_username(order),
-                name=f'Autostars username check: {order.order_id} | {order.telegram_username}',
-            ),
-        )
-
-    await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
-    await storage.add_or_update_orders(*chain(invalid_username, ready))
+    await asyncio.gather(*(check_username(i) for i in orders if i not in errored))
+    await storage.add_or_update_orders(*chain(errored, ready))
 
     # todo: send notification to funpay
     # todo: send notification in chat if error occurred while fetching username
@@ -146,7 +139,6 @@ async def sale_orders(
     hub: FPH,
     autostars_storage: Storage,
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
-    translater: Tr,
     autostars_fragment_api: FragmentAPI,
 ) -> None:
     cat = await hub.funpay.bot.storage.get_category(TELEGRAM_CATEGORY_ID)
@@ -170,30 +162,7 @@ async def sale_orders(
         [i.order_id for i in stars_orders],
     )
 
-    errored: list[tuple[StarsOrder, Exception]] = []
-
-    for i in stars_orders:
-        try:
-            await autostars_storage.add_or_update_order(i)
-        except Exception as e:
-            errored.append((i, e))
-            plugin.plugin.logger.error(
-                _ru('Не удалось добавить информацию о заказе %s в базу данных!'),
-                i.order_id,
-                exc_info=True,
-            )
-
-    if errored:
-        hub.telegram.send_error_notification(
-            translater.translate(
-                '<b>Telegram Stars</b>\n<b>❌ CRITICAL ❌</b>\n\n'
-                'Не удалось добавить информацию о заказах {order_ids} в базу данных!\n'
-                'Плагин не будет знать об этих заказах и не сможет с ними ничего сделать. '
-                'Эти заказы необходимо обработать вручную!',
-            ).format(
-                order_ids=', '.join(f'<code>{i[0].order_id}</code>' for i in errored),
-            ),
-        )
-        return
-
-    await check_usernames(stars_orders, autostars_storage, autostars_fragment_api, plugin)
+    await autostars_storage.add_or_update_orders(*stars_orders)
+    asyncio.create_task(
+        check_usernames(stars_orders, autostars_storage, autostars_fragment_api, plugin)
+    )

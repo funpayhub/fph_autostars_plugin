@@ -85,10 +85,16 @@ class AutostarsPlugin(Plugin):
         return [
             Command(
                 source=self.manifest.plugin_id,
-                command='transfer_stars',
-                description='Потратить кровные звезды на какого-то.',
+                command='stars_order_info',
+                description='[AutoStars] Информация о заказе.',
                 setup=True,
             ),
+            Command(
+                source=self.manifest.plugin_id,
+                command='stars_mark_done',
+                description='[AutoStars] Пометить заказы как выполненные.',
+                setup=True
+            )
         ]
 
     async def formatters(self) -> type[Formatter] | list[type[Formatter]] | None:
