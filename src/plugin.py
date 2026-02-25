@@ -17,11 +17,11 @@ from .exceptions import TonWalletError
 import traceback
 
 from .fph import router as fph_router
-from .ton import Wallet, WalletProvider
+from .ton import WalletProvider
 from .other import NotificationChannels
 from .funpay import funpay_router
 from .storage import Sqlite3Storage
-from .telegram import ROUTERS
+# from .telegram import ROUTERS
 from .formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
@@ -74,8 +74,8 @@ class AutostarsPlugin(Plugin):
         self.props = AutostarsProperties()
         return self.props
 
-    async def telegram_routers(self) -> TGRouter | list[TGRouter]:
-        return ROUTERS
+    # async def telegram_routers(self) -> TGRouter | list[TGRouter]:
+    #     return ROUTERS
 
     async def funpay_routers(self) -> FPRouter | list[FPRouter]:
         return funpay_router
@@ -174,16 +174,17 @@ class AutostarsPlugin(Plugin):
         except asyncio.CancelledError:
             pass
         except Exception as e:
+            self.logger.critical('Autostars service is dead.', exc_info=True)
             error_file = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
             self.hub.telegram.send_notification(
                 NotificationChannels.ERROR,
                 self.hub.translater.translate(
-                    '<b>[❌ CRITICAL ❌]\n'
-                    'Autostars сервис умер.\n'
-                    'Переводы не будут совершаться.\n'
-                    'Обязательно передайте это сообщение разработчику.\n'
-                    'В данной ситуации поможет только перезапуск FunPay Hub.\n\n'
-                    'Подробности в логах.</b>'
+                    '<b>[❌ CRITICAL ❌]\n\n'
+                    '☠️ Autostars сервис умер.\n'
+                    '☠️ Переводы не будут совершаться.\n'
+                    '☠️ Обязательно передайте это сообщение разработчику.\n'
+                    '☠️ В данной ситуации поможет только перезапуск FunPay Hub.\n\n'
+                    '☠️ Подробности в логах.</b>'
                 ),
                 document=error_file
             )
