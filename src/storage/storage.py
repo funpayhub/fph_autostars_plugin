@@ -48,25 +48,13 @@ class Sqlite3Storage(Storage):
         self._path = Path(path)
         self._conn: Connection | None = None
 
-        self._expected_schema = {
-            'id': 'TEXT',
-            'telegram_username': 'TEXT',
-            'funpay_chat_id': 'INTEGER',
-            'status': 'TEXT',
-            'error': 'TEXT',
-            'fragment_request_id': 'TEXT',
-            'ton_transaction_id': 'TEXT',
-            'event_obj': 'TEXT',
-            'order_preview': 'TEXT',
-            'created_at': 'INTEGER',
-        }
-
     async def setup(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(self.path)
         self._conn.row_factory = aiosqlite.Row
 
-        await self._conn.execute("""CREATE TABLE IF NOT EXISTS "orders" (
+        await self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS "orders" (
 	            "order_id"	          TEXT    NOT NULL UNIQUE,
                 "order_stars_amount"  INTEGER NOT NULL,
                 "order_amount"        INTEGER NOT NULL,
@@ -86,8 +74,6 @@ class Sqlite3Storage(Storage):
                 "retries_left"        INTEGER NOT NULL,
                 PRIMARY KEY("order_id")
 );""")
-
-        # todo: add table structure check
 
     async def stop(self):
         await self._conn.close()
@@ -129,13 +115,11 @@ class Sqlite3Storage(Storage):
         conditions = []
         params = []
 
-        # фильтр по order_id
         if order_ids:
             placeholders = ', '.join(['?'] * len(order_ids))
             conditions.append(f'order_id IN ({placeholders})')
             params.extend(order_ids)
 
-        # фильтр по статусу
         if status is not None:
             if isinstance(status, list):
                 placeholders = ', '.join(['?'] * len(status))
