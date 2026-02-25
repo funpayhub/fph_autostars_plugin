@@ -54,3 +54,8 @@ async def update_fragment_api(
         cookies=plugin.properties.wallet.cookies.value,
         hash=plugin.properties.wallet.fragment_hash.value,
     )
+
+
+@router.on_funpayhub_stopped()
+async def stop_service(plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]):
+    await plugin.plugin.transfer_service.stop()

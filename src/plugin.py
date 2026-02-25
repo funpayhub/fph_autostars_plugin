@@ -216,7 +216,6 @@ class AutostarsPlugin(Plugin):
                 _ru('Не удалось форматировать сообщение об ошибка перевода звёзд.'),
                 exc_info=True,
             )
-            # todo: err notification
             return
 
         try:
@@ -226,9 +225,6 @@ class AutostarsPlugin(Plugin):
                 _ru('Не удалось отправить сообщение об ошибке перевода звёзд.'),
                 exc_info=True,
             )
-            # todo: send notification
-
-
 
     async def on_successful_transfer(self, *orders: StarsOrder) -> None:
         await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
@@ -257,7 +253,6 @@ class AutostarsPlugin(Plugin):
                 _ru('Не удалось форматировать сообщение об успешном переводе звёзд.'),
                 exc_info=True,
             )
-            # todo: err notification
             return
 
         try:
@@ -267,7 +262,6 @@ class AutostarsPlugin(Plugin):
                 _ru('Не удалось отправить сообщение об успешном переводе звёзд.'),
                 exc_info=True,
             )
-            # todo: send notification
 
     @property
     def ready(self) -> bool:

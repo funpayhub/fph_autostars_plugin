@@ -49,6 +49,7 @@ class TransferrerService:
         while True:
             if self._stop.is_set():
                 self._stopped.set()
+                self.logger.info(_ru('Autostars service остановлен.'))
                 return
 
             await asyncio.sleep(2)
