@@ -26,6 +26,9 @@ class Storage(ABC):
     async def get_order(self, order_id: str) -> StarsOrder | None: ...
 
     @abstractmethod
+    async def stop(self) -> None: ...
+
+    @abstractmethod
     async def get_orders(
         self,
         *order_ids: str,
@@ -69,6 +72,7 @@ class Sqlite3Storage(Storage):
                 "order_amount"        INTEGER NOT NULL,
 	            "stars_amount"        INTEGER NOT NULL,
 	            "funpay_username"     TEXT    NOT NULL,
+                "username_checked"    BOOLEAN NOT NULL DEFAULT 0,
                 "funpay_chat_id"      INTEGER NOT NULL,
                 "telegram_username"	  TEXT,
                 "recipient_id"        TEXT,
@@ -94,6 +98,9 @@ class Sqlite3Storage(Storage):
 );""")
 
         # todo: add table structure check
+
+    async def stop(self):
+        await self._conn.close()
 
     async def add_or_update_order(self, order: StarsOrder, commit: bool = True) -> None:
         data = order.model_dump(mode='json')

@@ -5,6 +5,8 @@ import logging
 import traceback
 from typing import TYPE_CHECKING
 
+from aiogram.methods import SendDocument
+from aiogram.types import BufferedInputFile
 from pytoniq import LiteClient
 
 from funpayhub.lib.telegram import Command
@@ -27,7 +29,7 @@ from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI, FragmentAPIProvider
 from .transferer_service import TransferrerService
-from .telegram.middlewares import CryMiddleware
+# from .telegram.middlewares import CryMiddleware
 
 
 if TYPE_CHECKING:
@@ -86,9 +88,9 @@ class AutostarsPlugin(Plugin):
     async def telegram_routers(self) -> TGRouter | list[TGRouter]:
         return ROUTERS
 
-    async def setup_telegram_routers(self) -> None:
-        mdlwr = CryMiddleware(self.props)
-        self.hub.telegram.dispatcher.callback_query.outer_middleware(mdlwr)
+    # async def setup_telegram_routers(self) -> None:
+    #     mdlwr = CryMiddleware(self.props)
+    #     self.hub.telegram.dispatcher.callback_query.outer_middleware(mdlwr)
 
     async def funpay_routers(self) -> FPRouter | list[FPRouter]:
         return funpay_router
@@ -205,9 +207,9 @@ class AutostarsPlugin(Plugin):
         except Exception as e:
             self.logger.critical('Autostars service is dead.', exc_info=True)
             error_file = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
-            self.hub.telegram.send_notification(
-                NotificationChannels.ERROR,
-                self.hub.translater.translate(
+            call = SendDocument(
+                chat_id=0,
+                caption=self.hub.translater.translate(
                     '<b>[❌ CRITICAL ❌]\n\n'
                     '☠️ Autostars сервис умер.\n'
                     '☠️ Переводы не будут совершаться.\n'
@@ -215,8 +217,12 @@ class AutostarsPlugin(Plugin):
                     '☠️ В данной ситуации поможет только перезапуск FunPay Hub.\n\n'
                     '☠️ Подробности в логах.</b>',
                 ),
-                document=error_file,
+                document=BufferedInputFile(
+                    error_file.encode(),
+                    filename='autostars_service_crash_traceback.txt'
+                )
             )
+            self.hub.telegram.send_notification_from_obj(NotificationChannels.ERROR, call)
 
     async def generate_payload_text(self, order: StarsOrder, ref: str) -> str:
         text = self.props.messages.payload_message.value

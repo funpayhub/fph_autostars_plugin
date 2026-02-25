@@ -44,9 +44,15 @@ class TransferrerService:
         self._stopped = asyncio.Event()
 
     async def main_loop(self) -> None:
+        try:
+            await self._main_loop()
+        except:
+            self._stopped.set()
+            raise
+
+    async def _main_loop(self) -> None:
         self.logger.info(_ru('Autostars service запущен.'))
         self._stopped.clear()
-
         while True:
             if self._stop.is_set():
                 self._stopped.set()

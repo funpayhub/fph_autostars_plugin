@@ -27,9 +27,11 @@ USERNAME_RE = re.compile(', @?([a-zA-Z0-9]+$)')
 
 class StarsOrder(BaseModel):
     model_config = {'extra': 'allow'}
+
     message_obj: Message
     order_preview: OrderPreview
     telegram_username: str | None
+    username_checked: bool = False
     recipient_id: str | None = None
     status: StarsOrderStatus = StarsOrderStatus.UNPROCESSED
     error: ErrorTypes | None = None

@@ -59,3 +59,4 @@ async def update_fragment_api(
 @router.on_funpayhub_stopped()
 async def stop_service(plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]):
     await plugin.plugin.transfer_service.stop()
+    await plugin.plugin.storage.stop()
