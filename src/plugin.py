@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import traceback
 from typing import TYPE_CHECKING
 
 from pytoniq import LiteClient
@@ -13,8 +14,6 @@ from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.plugin import Plugin
 from funpayhub.app.formatters import GeneralFormattersCategory
-from .exceptions import TonWalletError
-import traceback
 
 from .fph import router as fph_router
 from .ton import WalletProvider
@@ -22,11 +21,13 @@ from .other import NotificationChannels
 from .funpay import funpay_router
 from .storage import Sqlite3Storage
 from .telegram import ROUTERS
+from .exceptions import TonWalletError
 from .formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI, FragmentAPIProvider
 from .transferer_service import TransferrerService
+from .telegram.middlewares import CryMiddleware
 
 
 if TYPE_CHECKING:
@@ -40,6 +41,14 @@ if TYPE_CHECKING:
     from funpayhub.app.dispatching import Router as HubRouter
 
     from .types import StarsOrder
+
+
+AD_TEXT = (
+    '✨ Звезды переведены автоматически плагином AutoStars для бесплатного бота FunPay Hub.  \n\n'
+    '💻 GitHub: https://github.com/funpayhub/funpayhub \n'
+    '💻 Plugin GitHub: https://github.com/funpayhub/fph_autostars_plugin \n'
+    '✈️ Telegram: https://t.me/funpay_hub'
+)
 
 
 class AutostarsPlugin(Plugin):
@@ -77,6 +86,10 @@ class AutostarsPlugin(Plugin):
     async def telegram_routers(self) -> TGRouter | list[TGRouter]:
         return ROUTERS
 
+    async def setup_telegram_routers(self) -> None:
+        mdlwr = CryMiddleware(self.props)
+        self.hub.telegram.dispatcher.callback_query.outer_middleware(mdlwr)
+
     async def funpay_routers(self) -> FPRouter | list[FPRouter]:
         return funpay_router
 
@@ -95,8 +108,8 @@ class AutostarsPlugin(Plugin):
                 source=self.manifest.plugin_id,
                 command='stars_mark_done',
                 description='[AutoStars] Пометить заказы как выполненные.',
-                setup=True
-            )
+                setup=True,
+            ),
         ]
 
     async def formatters(self) -> type[Formatter] | list[type[Formatter]] | None:
@@ -128,35 +141,35 @@ class AutostarsPlugin(Plugin):
                     balance = await self.wallet_provider.wallet.get_balance()
                     self.logger.info(
                         _ru('Кошелек %s подключен.'),
-                        self.wallet_provider.wallet.address
+                        self.wallet_provider.wallet.address,
                     )
                     self.hub.telegram.send_notification(
                         NotificationChannels.INFO,
                         self.hub.translater.translate(
                             '<b>✅ TON кошелек <code>{address}</code> подключен.\n\n'
-                            '💰Баланс: <code>{balance}</code> TON</b>'
+                            '💰Баланс: <code>{balance}</code> TON</b>',
                         ).format(
                             address=self.wallet_provider.wallet.address,
                             balance=balance / 1_000_000_000,
-                        )
+                        ),
                     )
                     break
                 except TonWalletError:
                     self.logger.error(
                         _ru('Произошла ошибка при подключении к кошельку. Попытка: %d/3.'),
-                        i+1,
+                        i + 1,
                         exc_info=True,
                     )
+                    await asyncio.sleep(2)
             else:
                 self.hub.telegram.send_notification(
                     NotificationChannels.ERROR,
                     self.hub.translater.translate(
                         '<b>[❌ CRITICAL ❌]\n'
                         'Не удалось подключиться к TON кошельку.\n\n'
-                        'Подробности в логах.</b>'
-                    )
+                        'Подробности в логах.</b>',
+                    ),
                 )
-
 
         self.transfer_service = TransferrerService(
             self.hub,
@@ -168,6 +181,7 @@ class AutostarsPlugin(Plugin):
 
         self.transfer_service._on_success_callback = self.on_successful_transfer
         self.transfer_service._on_error_callback = self.on_transfer_error
+        self.transfer_service._payload_gen = self.generate_payload_text
 
         self.hub.workflow_data.update(
             {
@@ -199,21 +213,57 @@ class AutostarsPlugin(Plugin):
                     '☠️ Переводы не будут совершаться.\n'
                     '☠️ Обязательно передайте это сообщение разработчику.\n'
                     '☠️ В данной ситуации поможет только перезапуск FunPay Hub.\n\n'
-                    '☠️ Подробности в логах.</b>'
+                    '☠️ Подробности в логах.</b>',
                 ),
-                document=error_file
+                document=error_file,
             )
+
+    async def generate_payload_text(self, order: StarsOrder, ref: str) -> str:
+        text = self.props.messages.payload_message.value
+        ad = self.props.messages.show_ad.value
+        if not text:
+            return ref if not ad else AD_TEXT + f'\n\n{ref}'
+
+        ctx = StarsOrderFormatterContext(
+            new_message_event=order.sale_event.related_new_message_event,
+            order_event=order.sale_event,
+            goods_to_deliver=[],
+            stars_order=order,
+        )
+
+        try:
+            pack = await self.hub.funpay.text_formatters.format_text(
+                text=text,
+                context=ctx,
+                query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
+            )
+        except Exception:
+            self.logger.error(
+                _ru('Не удалось форматировать комментарий к транзакции.'),
+                exc_info=True,
+            )
+            return ref if not ad else AD_TEXT + f'\n\n{ref}'
+
+        total_text = ''.join(i for i in pack.entries if isinstance(i, str))
+        if ad:
+            total_text += f'\n\n{AD_TEXT}'
+
+        if total_text:
+            total_text += f'\n\n{ref}'
+        else:
+            total_text = ref
+        return total_text
 
     async def on_transfer_error(self, *orders: StarsOrder) -> None:
         await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
         message_text = self.hub.translater.translate(
-            '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>'
+            '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>',
         ).format(
-            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders)
+            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
         )
         self.hub.telegram.send_notification(
             NotificationChannels.ERROR,
-            message_text
+            message_text,
         )
 
     async def _on_transfer_error(self, order: StarsOrder) -> None:
@@ -252,13 +302,13 @@ class AutostarsPlugin(Plugin):
     async def on_successful_transfer(self, *orders: StarsOrder) -> None:
         await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
         message_text = self.hub.translater.translate(
-            '<b>✅ Транзакции по заказам {order_ids} успешно выполнены.</b>'
+            '<b>✅ Транзакции по заказам {order_ids} успешно выполнены.</b>',
         ).format(
-            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders)
+            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
         )
         self.hub.telegram.send_notification(
             NotificationChannels.INFO,
-            message_text
+            message_text,
         )
 
     async def _on_successful_transfer(self, order: StarsOrder) -> None:

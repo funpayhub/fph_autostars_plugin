@@ -42,7 +42,10 @@ async def _show_order_info(order_id: str, message: Message, storage: Storage, tg
 
 @router.message(Command('stars_order_info'))
 async def autostars_offer_info(
-    message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext
+    message: Message,
+    autostars_storage: Storage,
+    tg_ui: UIRegistry,
+    state: FSMContext,
 ):
     args = message.text.split(' ')[1:]
     if not args:
@@ -60,7 +63,10 @@ async def autostars_offer_info(
 
 @router.message(states.ViewingOrderInfo.filter(), lambda message: message.text)
 async def autostars_offer_info_from_state(
-    message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext
+    message: Message,
+    autostars_storage: Storage,
+    tg_ui: UIRegistry,
+    state: FSMContext,
 ):
     obj = await states.ViewingOrderInfo.get(state)
     await states.ViewingOrderInfo.clear(state)

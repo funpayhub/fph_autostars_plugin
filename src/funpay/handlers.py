@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections import defaultdict
 from typing import TYPE_CHECKING
 from itertools import chain
+from collections import defaultdict
 
 from funpaybotengine import Router
+from autostars.src.exceptions import FragmentResponseError
+from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
+from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
 from funpaybotengine.types.enums import SubcategoryType
 
 from funpayhub.lib.translater import _ru
@@ -14,24 +17,18 @@ from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.formatters import GeneralFormattersCategory
 
-from autostars.src.exceptions import FragmentResponseError
-from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
-from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
-
 
 if TYPE_CHECKING:
-    from funpaybotengine.runner import EventsStack
-
-    from funpayhub.lib.plugin import LoadedPlugin
-    from funpayhub.lib.translater import Translater as Tr
-
-    from funpayhub.app.main import FunPayHub as FPH
-
     from autostars.src.types import StarsOrder
     from autostars.src.plugin import AutostarsPlugin
     from autostars.src.storage import Storage
+    from funpaybotengine.runner import EventsStack
     from autostars.src.properties import AutostarsProperties
-    from autostars.src.fragment_api import FragmentAPIProvider, FragmentAPI
+    from autostars.src.fragment_api import FragmentAPI, FragmentAPIProvider
+
+    from funpayhub.lib.plugin import LoadedPlugin
+
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 from .utils import extract_stars_orders
@@ -44,7 +41,9 @@ TELEGRAM_CATEGORY_ID = 224
 STARS_SUBCATEGORY_ID = 2418
 
 
-async def check_username(order: StarsOrder, api: FragmentAPI, logger: logging.Logger) -> StarsOrder:
+async def check_username(
+    order: StarsOrder, api: FragmentAPI, logger: logging.Logger
+) -> StarsOrder:
     for attempt in range(3):
         try:
             r = await api.search_stars_recipient(order.telegram_username)
@@ -59,7 +58,7 @@ async def check_username(order: StarsOrder, api: FragmentAPI, logger: logging.Lo
                 'Не удалось проверить Telegram username %s. Попытка: %d/3.',
                 order.telegram_username,
                 attempt + 1,
-                exc_info=True
+                exc_info=True,
             )
             await asyncio.sleep(1)
     order.status = StarsOrderStatus.ERROR
@@ -88,7 +87,9 @@ async def check_usernames(
         else:
             to_check.append(order)
 
-    r = await asyncio.gather(*(check_username(i, api_provider.api, plugin.plugin.logger) for i in to_check))
+    r = await asyncio.gather(
+        *(check_username(i, api_provider.api, plugin.plugin.logger) for i in to_check)
+    )
     for i in r:
         checked[i.status].append(i)
     await storage.add_or_update_orders(*chain(*checked.values()))
@@ -171,5 +172,5 @@ async def sale_orders(
 
     await autostars_storage.add_or_update_orders(*stars_orders)
     asyncio.create_task(
-        check_usernames(stars_orders, autostars_storage, autostars_fragment_api, plugin)
+        check_usernames(stars_orders, autostars_storage, autostars_fragment_api, plugin),
     )

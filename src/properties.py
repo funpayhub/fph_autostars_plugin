@@ -3,7 +3,7 @@ from __future__ import annotations
 from pytoniq_core.crypto.keys import mnemonic_is_valid
 
 from funpayhub.lib.exceptions import ValidationError
-from funpayhub.lib.properties import Properties, StringParameter
+from funpayhub.lib.properties import Properties, StringParameter, ToggleParameter
 from funpayhub.lib.base_app.properties_flags import TelegramUIEmojiFlag
 
 from funpayhub.app.properties.flags import ParameterFlags
@@ -79,6 +79,16 @@ class MessagesProperties(Properties):
             name='Настройки сообщений',
             description='Настройки FunPay сообщений, комментариев к транзакциям и т.д.',
             flags=[TelegramUIEmojiFlag('💬')],
+        )
+
+        self.show_ad = self.attach_node(
+            ToggleParameter(
+                id='show_ad',
+                name='Показывать рекламу',
+                description='Показывать рекламу в комментарии к TON транзакции',
+                default_value=True,
+                flags=[TelegramUIEmojiFlag('👻')],
+            ),
         )
 
         self.transaction_started_message = self.attach_node(

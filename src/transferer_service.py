@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from funpayhub.lib.translater import _ru
 
-from .ton import WalletProvider, Wallet
+from .ton import Wallet, WalletProvider
 from .storage import Storage
 from .ton.wallet import Transfer
 from .types.enums import ErrorTypes, StarsOrderStatus
@@ -38,6 +38,7 @@ class TransferrerService:
 
         self._on_success_callback = None
         self._on_error_callback = None
+        self._payload_gen = None
 
         self._stop = asyncio.Event()
         self._stopped = asyncio.Event()
@@ -90,10 +91,14 @@ class TransferrerService:
         for i in orders:
             try:
                 stars_link = await self.get_stars_link(i.recipient_id, i.stars_amount)
+                payload = await self.generate_payload(
+                    i,
+                    stars_link.transaction.messages[0].clear_payload,
+                )
                 transfer = Transfer(
                     address=stars_link.transaction.messages[0].address,
                     amount=stars_link.transaction.messages[0].amount,
-                    payload=stars_link.transaction.messages[0].clear_payload,
+                    payload=payload,
                     valid_until=stars_link.transaction.valid_until,
                 )
                 orders_to_transfer[i] = transfer
@@ -111,7 +116,9 @@ class TransferrerService:
                 continue
 
         if errored:
-            asyncio.create_task(self._on_error_callback(*errored))
+            to_execute = [i for i in errored if i.retries_left <= 0]
+            if to_execute:
+                asyncio.create_task(self._on_error_callback(*to_execute))
 
         if not orders_to_transfer:
             return
@@ -143,6 +150,16 @@ class TransferrerService:
         await self.storage.add_or_update_order(*orders_to_transfer)
         if self._on_success_callback:
             asyncio.create_task(self._on_success_callback(*orders_to_transfer))
+
+    async def generate_payload(self, order: StarsOrder, ref: str) -> str:
+        if self._payload_gen is None:
+            return ref
+
+        try:
+            r = await self._payload_gen(order, ref)
+        except Exception:  # todo: log
+            return ref
+        return r or ref
 
     async def get_stars_link(self, recipient_id: str | None, amount: int) -> BuyStarsLink:
         init_link = await self.api_provider.api.init_buy_stars_request(
