@@ -76,16 +76,7 @@ class Sqlite3Storage(Storage):
                 "funpay_chat_id"      INTEGER NOT NULL,
                 "telegram_username"	  TEXT,
                 "recipient_id"        TEXT,
-                "status"	          TEXT    NOT NULL
-                CHECK( status IN (
-                    'UNPROCESSED', 
-                    'WAITING_FOR_USERNAME', 
-                    'READY', 
-                    'TRANSFERRING', 
-                    'DONE', 
-                    'ERROR'
-                )),
-            
+                "status"	          TEXT    NOT NULL,
                 "error"	              TEXT,
                 "fragment_request_id" TEXT,
                 "ton_transaction_id"  TEXT,
