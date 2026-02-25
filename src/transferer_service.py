@@ -153,7 +153,7 @@ class TransferrerService:
         for i in orders_to_transfer:
             i.status = StarsOrderStatus.DONE
             i.ton_transaction_id = hash
-        await self.storage.add_or_update_order(*orders_to_transfer)
+        await self.storage.add_or_update_orders(*orders_to_transfer)
         if self._on_success_callback:
             asyncio.create_task(self._on_success_callback(*orders_to_transfer))
 

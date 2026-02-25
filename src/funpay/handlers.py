@@ -124,7 +124,6 @@ async def on_username_not_found(
             _ru('Не удалось форматировать сообщение о неверном telegram юзернейме.'),
             exc_info=True,
         )
-        # todo: notification
         return
 
     try:
@@ -134,7 +133,6 @@ async def on_username_not_found(
             _ru('Не удалось отправить сообщение о неверном telegram юзернейме.'),
             exc_info=True,
         )
-        # todo: notification
         return
 
 

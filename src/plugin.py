@@ -261,7 +261,7 @@ class AutostarsPlugin(Plugin):
         return total_text
 
     async def on_transfer_error(self, *orders: StarsOrder) -> None:
-        await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
+        await asyncio.gather(*(self._on_transfer_error(i) for i in orders))
         message_text = self.hub.translater.translate(
             '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>',
         ).format(

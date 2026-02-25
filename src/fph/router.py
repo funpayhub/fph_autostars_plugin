@@ -36,7 +36,7 @@ async def update_wallet(autostars_wallet: WalletProvider, parameter: StringParam
     lambda parameter, plugin: parameter.path
     in [
         plugin.properties.wallet.cookies.path,
-        plugin.properties.wallet.fragment_hash.value,
+        plugin.properties.wallet.fragment_hash.path,
     ],
 )
 async def update_fragment_api(
