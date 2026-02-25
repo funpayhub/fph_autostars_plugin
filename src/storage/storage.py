@@ -86,8 +86,7 @@ class Sqlite3Storage(Storage):
                     'ERROR'
                 )),
             
-                "error"	              TEXT
-                CHECK(error IS NULL OR error IN ('NOT_ENOUGH_TON', 'TRANSFER_ERROR', 'UNKNOWN')),
+                "error"	              TEXT,
                 "fragment_request_id" TEXT,
                 "ton_transaction_id"  TEXT,
                 "message_obj"	      TEXT    NOT NULL,
