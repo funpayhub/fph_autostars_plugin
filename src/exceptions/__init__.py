@@ -71,3 +71,6 @@ class FailedToCreateStarsLink(FragmentAPIError):
         super().__init__(
             _ru('Ошибка при создании ссылки на перевод звезд.'),
         )
+
+
+class TonWalletError(AutostarsPluginException): ...

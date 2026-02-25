@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Self
 from dataclasses import dataclass
 
 from pytoniq import Address, LiteClient, WalletV5R1
+
+from autostars.src.exceptions import TonWalletError
 from autostars.src.utils import get_mainnet_config
 
 
@@ -38,6 +40,9 @@ class WalletProvider:
     def __init__(self):
         self.wallet = None
 
+    async def remake_wallet(self, mnemonics: str) -> None:
+        self.wallet = await Wallet.from_mnemonics(mnemonics)
+
 
 class Wallet:
     def __init__(self, client: LiteClient, wallet: WalletV5R1):
@@ -54,7 +59,7 @@ class Wallet:
         return self._wallet
 
     @classmethod
-    async def from_mnemonics(cls, mnemonics: str) -> Self:
+    async def _from_mnemonics(cls, mnemonics: str) -> Self:
         config = await get_mainnet_config()
 
         for i in range(len(config['liteservers'])):
@@ -74,6 +79,13 @@ class Wallet:
         )
 
         return cls(client, wallet)
+
+    @classmethod
+    async def from_mnemonics(cls, mnemonics: str) -> Self:
+        try:
+            return await cls._from_mnemonics(mnemonics)
+        except Exception as e:
+            raise TonWalletError('Unable to connect to wallet.') from e
 
     @classmethod
     async def testnet_from_mnemonics(cls, mnemonics: str) -> Self:

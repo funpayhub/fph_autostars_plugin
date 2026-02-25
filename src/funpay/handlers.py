@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+from collections import defaultdict
 from typing import TYPE_CHECKING
 from itertools import chain
 
@@ -29,7 +31,7 @@ if TYPE_CHECKING:
     from autostars.src.plugin import AutostarsPlugin
     from autostars.src.storage import Storage
     from autostars.src.properties import AutostarsProperties
-    from autostars.src.fragment_api import FragmentAPIProvider as FragmentAPI
+    from autostars.src.fragment_api import FragmentAPIProvider, FragmentAPI
 
 
 from .utils import extract_stars_orders
@@ -42,49 +44,54 @@ TELEGRAM_CATEGORY_ID = 224
 STARS_SUBCATEGORY_ID = 2418
 
 
+async def check_username(order: StarsOrder, api: FragmentAPI, logger: logging.Logger) -> StarsOrder:
+    for attempt in range(3):
+        try:
+            r = await api.search_stars_recipient(order.telegram_username)
+            order.status = StarsOrderStatus.READY
+            order.recipient_id = r.found.recipient
+            return order
+        except FragmentResponseError:
+            order.status = StarsOrderStatus.WAITING_FOR_USERNAME
+            return order
+        except Exception:
+            logger.warning(
+                'Не удалось проверить Telegram username %s. Попытка: %d/3.',
+                order.telegram_username,
+                attempt + 1,
+                exc_info=True
+            )
+            await asyncio.sleep(1)
+    order.status = StarsOrderStatus.ERROR
+    order.error = ErrorTypes.UNABLE_TO_FETCH_USERNAME
+    order.retries_left = 0
+    return order
+
+
 async def check_usernames(
     orders: list[StarsOrder],
     storage: Storage,
-    api: FragmentAPI,
+    api_provider: FragmentAPIProvider,
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ):
-    errored: list[StarsOrder] = []
-    ready: list[StarsOrder] = []
+    checked: dict[StarsOrderStatus, list[StarsOrder]] = defaultdict(list)
 
-    async def check_username(order: StarsOrder) -> None:
-        for _ in range(3):
-            try:
-                r = await api.api.search_stars_recipient(order.telegram_username)
-                order.status = StarsOrderStatus.READY
-                order.recipient_id = r.found.recipient
-                ready.append(order)
-                return
-            except FragmentResponseError:
-                order.status = StarsOrderStatus.WAITING_FOR_USERNAME
-                errored.append(order)
-                asyncio.create_task(on_username_not_found(order, plugin))
-                return
-            except Exception:
-                await asyncio.sleep(1)
-        order.status = StarsOrderStatus.ERROR
-        order.error = ErrorTypes.UNABLE_TO_FETCH_USERNAME
-        order.retries_left = 0
-        errored.append(order)
-
+    to_check: list[StarsOrder] = []
     for order in orders:
         if not order.telegram_username:
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
-            errored.append(order)
-            continue
-
-        if api.api is None:
+            checked[order.status].append(order)
+        elif api_provider.api is None:
             order.status = StarsOrderStatus.ERROR
             order.error = ErrorTypes.FRAGMENT_API_NOT_PROVIDED
-            errored.append(order)
-            continue
+            checked[order.status].append(order)
+        else:
+            to_check.append(order)
 
-    await asyncio.gather(*(check_username(i) for i in orders if i not in errored))
-    await storage.add_or_update_orders(*chain(errored, ready))
+    r = await asyncio.gather(*(check_username(i, api_provider.api, plugin.plugin.logger) for i in to_check))
+    for i in r:
+        checked[i.status].append(i)
+    await storage.add_or_update_orders(*chain(*checked.values()))
 
     # todo: send notification to funpay
     # todo: send notification in chat if error occurred while fetching username
@@ -139,7 +146,7 @@ async def sale_orders(
     hub: FPH,
     autostars_storage: Storage,
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
-    autostars_fragment_api: FragmentAPI,
+    autostars_fragment_api: FragmentAPIProvider,
 ) -> None:
     cat = await hub.funpay.bot.storage.get_category(TELEGRAM_CATEGORY_ID)
     subcat = [

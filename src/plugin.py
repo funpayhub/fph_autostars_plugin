@@ -13,6 +13,8 @@ from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.plugin import Plugin
 from funpayhub.app.formatters import GeneralFormattersCategory
+from .exceptions import TonWalletError
+import traceback
 
 from .fph import router as fph_router
 from .ton import Wallet, WalletProvider
@@ -49,7 +51,7 @@ class AutostarsPlugin(Plugin):
         self.storage = None
 
         self.props: AutostarsProperties | None = None
-        self.transferrer_service: TransferrerService | None = None
+        self.transfer_service: TransferrerService | None = None
 
     async def setup_properties(self) -> None:
         self.hub.properties.telegram.notifications.attach_node(
@@ -120,17 +122,28 @@ class AutostarsPlugin(Plugin):
 
         if self.props.wallet.mnemonics.value:
             self.logger.info(_ru('Мнемоники найдены в настройках. Создаю кошелек.'))
-            try:
-                self.wallet_provider.wallet = await Wallet.from_mnemonics(
-                    self.props.wallet.mnemonics.value,
-                )
-            except Exception:
-                self.logger.error(
-                    _ru('Произошла ошибка при подключении к кошельку.'),
-                    exc_info=True,
+            for i in range(3):
+                try:
+                    await self.wallet_provider.remake_wallet(self.props.wallet.mnemonics.value)
+                    break
+                except TonWalletError:
+                    self.logger.error(
+                        _ru('Произошла ошибка при подключении к кошельку. Попытка: %d/3.'),
+                        i+1,
+                        exc_info=True,
+                    )
+            else:
+                self.hub.telegram.send_notification(
+                    NotificationChannels.ERROR,
+                    self.hub.translater.translate(
+                        '<b>[❌ CRITICAL ❌]\n'
+                        'Не удалось подключиться к TON кошельку.\n\n'
+                        'Подробности в логах.</b>'
+                    )
                 )
 
-        self.transferrer_service = TransferrerService(
+
+        self.transfer_service = TransferrerService(
             self.hub,
             self.storage,
             self.fragment_api_provider,
@@ -138,19 +151,89 @@ class AutostarsPlugin(Plugin):
             self.logger,
         )
 
-        self.transferrer_service._on_success_callback = self.on_successful_transfer
+        self.transfer_service._on_success_callback = self.on_successful_transfer
+        self.transfer_service._on_error_callback = self.on_transfer_error
 
         self.hub.workflow_data.update(
             {
                 'autostars_storage': self.storage,
                 'autostars_wallet': self.wallet_provider,
                 'autostars_fragment_api': self.fragment_api_provider,
-                'autostars_service': self.transferrer_service,
+                'autostars_service': self.transfer_service,
             },
         )
-        asyncio.create_task(self.transferrer_service.main_loop())
+        task = asyncio.create_task(self.transfer_service.main_loop())
+        task.add_done_callback(self.service_done_callback)
 
-    async def on_successful_transfer(self, order: StarsOrder):
+    # ------------------------------------------
+    # ---------------- Callbacks ---------------
+    # ------------------------------------------
+    def service_done_callback(self, task: asyncio.Task) -> None:
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            error_file = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            self.hub.telegram.send_notification(
+                NotificationChannels.ERROR,
+                self.hub.translater.translate(
+                    '<b>[❌ CRITICAL ❌]\n'
+                    'Autostars сервис умер.\n'
+                    'Переводы не будут совершаться.\n'
+                    'Обязательно передайте это сообщение разработчику.\n'
+                    'В данной ситуации поможет только перезапуск FunPay Hub.\n\n'
+                    'Подробности в логах.</b>'
+                ),
+                document=error_file
+            )
+
+    async def on_transfer_error(self, *orders: StarsOrder) -> None:
+        await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
+        # todo: telegram notification
+
+    async def _on_transfer_error(self, order: StarsOrder) -> None:
+        message = self.props.messages.transaction_failed_message.value
+        if not message:
+            return
+
+        ctx = StarsOrderFormatterContext(
+            new_message_event=order.sale_event.related_new_message_event,
+            order_event=order.sale_event,
+            goods_to_deliver=[],
+            stars_order=order,
+        )
+
+        try:
+            pack = await self.hub.funpay.text_formatters.format_text(
+                text=message,
+                context=ctx,
+                query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
+            )
+        except Exception:
+            self.logger.error(
+                _ru('Не удалось форматировать сообщение об ошибка перевода звёзд.'),
+                exc_info=True,
+            )
+            # todo: err notification
+            return
+
+        try:
+            await self.hub.funpay.send_messages_stack(pack, order.funpay_chat_id)
+        except Exception:
+            self.logger.error(
+                _ru('Не удалось отправить сообщение об ошибке перевода звёзд.'),
+                exc_info=True,
+            )
+            # todo: send notification
+
+
+
+    async def on_successful_transfer(self, *orders: StarsOrder) -> None:
+        await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
+        # todo: send telegram notification
+
+    async def _on_successful_transfer(self, order: StarsOrder) -> None:
         message = self.props.messages.transaction_completed_message.value
         if not message:
             return
