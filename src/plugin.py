@@ -21,7 +21,7 @@ from .ton import WalletProvider
 from .other import NotificationChannels
 from .funpay import funpay_router
 from .storage import Sqlite3Storage
-# from .telegram import ROUTERS
+from .telegram import ROUTERS
 from .formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
@@ -74,8 +74,8 @@ class AutostarsPlugin(Plugin):
         self.props = AutostarsProperties()
         return self.props
 
-    # async def telegram_routers(self) -> TGRouter | list[TGRouter]:
-    #     return ROUTERS
+    async def telegram_routers(self) -> TGRouter | list[TGRouter]:
+        return ROUTERS
 
     async def funpay_routers(self) -> FPRouter | list[FPRouter]:
         return funpay_router
