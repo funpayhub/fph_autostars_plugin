@@ -116,3 +116,6 @@ class StarsOrder(BaseModel):
             )
             self._sale_event._order_preview = self.order_preview
         return self._sale_event
+
+    def __hash__(self):
+        return id(self)

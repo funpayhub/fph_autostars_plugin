@@ -55,6 +55,10 @@ class Wallet:
         return self._client
 
     @property
+    def address(self) -> str:
+        return self._wallet.address.to_str()
+
+    @property
     def wallet(self) -> WalletV5R1:
         return self._wallet
 
@@ -97,6 +101,9 @@ class Wallet:
             network_global_id=-3,
         )
         return cls(client, wallet)
+
+    async def get_balance(self) -> int:
+        return await self.wallet.get_balance()
 
     async def _transfer(self, *transfers: Transfer) -> str:
         seqno = await self.wallet.get_seqno()

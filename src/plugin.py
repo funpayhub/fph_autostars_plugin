@@ -125,6 +125,21 @@ class AutostarsPlugin(Plugin):
             for i in range(3):
                 try:
                     await self.wallet_provider.remake_wallet(self.props.wallet.mnemonics.value)
+                    balance = await self.wallet_provider.wallet.get_balance()
+                    self.logger.info(
+                        _ru('Кошелек %s подключен.'),
+                        self.wallet_provider.wallet.address
+                    )
+                    self.hub.telegram.send_notification(
+                        NotificationChannels.INFO,
+                        self.hub.translater.translate(
+                            '<b>✅ TON кошелек <code>{address}</code> подключен.\n\n'
+                            '💰Баланс: <code>{balance}</code> TON</b>'
+                        ).format(
+                            address=self.wallet_provider.wallet.address,
+                            balance=balance / 1_000_000_000,
+                        )
+                    )
                     break
                 except TonWalletError:
                     self.logger.error(
@@ -191,7 +206,15 @@ class AutostarsPlugin(Plugin):
 
     async def on_transfer_error(self, *orders: StarsOrder) -> None:
         await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
-        # todo: telegram notification
+        message_text = self.hub.translater.translate(
+            '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>'
+        ).format(
+            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders)
+        )
+        self.hub.telegram.send_notification(
+            NotificationChannels.ERROR,
+            message_text
+        )
 
     async def _on_transfer_error(self, order: StarsOrder) -> None:
         message = self.props.messages.transaction_failed_message.value
@@ -228,7 +251,15 @@ class AutostarsPlugin(Plugin):
 
     async def on_successful_transfer(self, *orders: StarsOrder) -> None:
         await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
-        # todo: send telegram notification
+        message_text = self.hub.translater.translate(
+            '<b>✅ Транзакции по заказам {order_ids} успешно выполнены.</b>'
+        ).format(
+            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders)
+        )
+        self.hub.telegram.send_notification(
+            NotificationChannels.INFO,
+            message_text
+        )
 
     async def _on_successful_transfer(self, order: StarsOrder) -> None:
         message = self.props.messages.transaction_completed_message.value
