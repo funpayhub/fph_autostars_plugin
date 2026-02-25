@@ -27,17 +27,8 @@ if TYPE_CHECKING:
 router = Router(name='autostars')
 
 
-@router.message(Command('autostars_order_info'))
-async def autostars_offer_info(message: Message, autostars_storage: Storage, tg_ui: UIRegistry):
-    args = message.text.split(' ')[1:]
-    if not args:
-        await message.answer(
-            '<b>❌ Неверное использование команды.\n/autostars_order_info &lt;ORDERID&gt;</b>',
-        )
-        return
-
-    order_id = args[0]
-    order = await autostars_storage.get_order(order_id)
+async def _show_order_info(order_id: str, message: Message, storage: Storage, tg_ui: UIRegistry):
+    order = await storage.get_order(order_id)
     if order is None:
         await message.answer('❌ <b>Заказ {order_id} не найден.</b>'.format(order_id=order_id))
         return
@@ -47,6 +38,31 @@ async def autostars_offer_info(message: Message, autostars_storage: Storage, tg_
         trigger=message,
         stars_order=order,
     ).build_and_answer(tg_ui, message)
+
+
+@router.message(Command('stars_order_info'))
+async def autostars_offer_info(message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext):
+    args = message.text.split(' ')[1:]
+    if not args:
+        msg = await StateUIContext(
+            menu_id=MenuIds.state_menu,
+            trigger=message,
+            text='<b>❓ Укажите ID заказа.</b>',
+        ).build_and_answer(tg_ui, message)
+        await states.ViewingOrderInfo(state_message=msg).set(state)
+        return
+
+    order_id = args[0]
+    await _show_order_info(order_id, message, autostars_storage, tg_ui)
+
+
+
+@router.message(states.ViewingOrderInfo.filter(), lambda message: message.text)
+async def autostars_offer_info_from_state(message: Message, autostars_storage: Storage, tg_ui: UIRegistry, state: FSMContext):
+    obj = await states.ViewingOrderInfo.get(state)
+    await states.ViewingOrderInfo.clear(state)
+    await _show_order_info(message.text, message, autostars_storage, tg_ui)
+    delete_message(obj.state_message)
 
 
 async def _mark_as_done(order_ids: set[str], storage: Storage, translater: Translater) -> str:
