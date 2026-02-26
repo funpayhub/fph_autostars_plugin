@@ -71,7 +71,7 @@ class AutostarsPlugin(Plugin):
     async def setup_properties(self) -> None:
         self.hub.properties.telegram.notifications.attach_node(
             ListParameter(
-                id=NotificationChannels.INFO,
+                id=NotificationChannels.INFO.value,
                 name='Autostars: общее',
                 description='Общие уведомления плагина Autostars.',
             ),
@@ -79,7 +79,7 @@ class AutostarsPlugin(Plugin):
 
         self.hub.properties.telegram.notifications.attach_node(
             ListParameter(
-                id=NotificationChannels.ERROR,
+                id=NotificationChannels.ERROR.value,
                 name='Autostars: ошибки',
                 description='Уведомления об ошибках в плагине Autostars.',
             ),

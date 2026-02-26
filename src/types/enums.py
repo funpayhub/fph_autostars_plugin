@@ -36,10 +36,12 @@ class StarsOrderType(Enum):
 class StarsOrderStatus(Enum):
     UNPROCESSED = 'UNPROCESSED'
     WAITING_FOR_USERNAME = 'WAITING_FOR_USERNAME'
+    CHECKING_USERNAME = 'CHECKING_USERNAME'
     READY = 'READY'
     TRANSFERRING = 'TRANSFERRING'
     DONE = 'DONE'
     ERROR = 'ERROR'
+    REFUNDED = 'REFUNDED'
 
 
 class ErrorTypes(Enum):

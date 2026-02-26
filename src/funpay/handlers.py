@@ -7,6 +7,8 @@ from itertools import chain
 from collections import defaultdict
 
 from funpaybotengine import Router
+from funpaybotengine.dispatching import OrderEvent
+
 from autostars.src.exceptions import FragmentResponseError
 from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
@@ -24,7 +26,7 @@ if TYPE_CHECKING:
     from funpaybotengine.runner import EventsStack
     from autostars.src.properties import AutostarsProperties
     from autostars.src.fragment_api import FragmentAPI, FragmentAPIProvider
-
+    from funpaybotengine.types import Message
     from funpayhub.lib.plugin import LoadedPlugin
 
     from funpayhub.app.main import FunPayHub as FPH
@@ -45,6 +47,7 @@ async def check_username(order: StarsOrder, api: FragmentAPI) -> StarsOrder:
             order.recipient_id = r.found.recipient
             return order
         except FragmentResponseError:
+            print(f'Wrong username {order.telegram_username} for order {order.order_id}.')
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
             return order
         except Exception:
@@ -88,26 +91,18 @@ async def on_username_not_found(
     order: StarsOrder,
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ) -> None:
-    text = plugin.properties.messages.username_not_found_message.value
-    if not text:
+    if not plugin.properties.messages.username_not_found_message.value:
         return
-
-    ctx = StarsOrderFormatterContext(
-        new_message_event=order.sale_event.related_new_message_event,
-        order_event=order.sale_event,
-        goods_to_deliver=[],
-        stars_order=order,
-    )
 
     try:
         pack = await plugin.plugin.hub.funpay.text_formatters.format_text(
-            text=text,
-            context=ctx,
+            text=plugin.properties.messages.username_not_found_message.value,
+            context=StarsOrderFormatterContext(stars_order=order),
             query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
         )
     except Exception:
         plugin.plugin.logger.error(
-            _ru('Не удалось форматировать сообщение о неверном telegram юзернейме.'),
+            _ru('Ошибка генерации сообщения о неверном telegram юзернейме.'),
             exc_info=True,
         )
         return
@@ -144,3 +139,49 @@ async def sale_orders(
     asyncio.create_task(
         check_usernames(stars_orders, autostars_storage, autostars_fragment_api.api),
     )
+
+
+@router.on_new_message(
+    lambda message: message.text and message.text.startswith('/stars '),
+    as_task=True,
+)
+async def update_username(
+    message: Message,
+    autostars_storage: Storage,
+    autostars_fragment_api: FragmentAPIProvider,
+    hub: FPH,
+) -> None:
+    args = message.text.split(' ')[1:]
+    if len(args) < 2:
+        return
+
+    order_id, telegram_username = args[:2]
+    if not (order := await autostars_storage.get_order(order_id)):
+        return
+
+    if order.funpay_chat_id != message.chat_id:
+        return
+
+    if order.status != StarsOrderStatus.WAITING_FOR_USERNAME or order.hub_instance != hub.instance_id:
+        return
+
+    order.telegram_username = telegram_username
+    order.status = StarsOrderStatus.CHECKING_USERNAME
+    await autostars_storage.add_or_update_order(order)
+    await check_usernames([order], autostars_storage, autostars_fragment_api.api)
+
+
+@router.on_sale_refunded()
+@router.on_sale_partially_refunded()
+async def mark_as_refunded(event: OrderEvent, autostars_storage: Storage) -> None:
+    preview = await event.get_preview()
+
+    order = await autostars_storage.get_order(preview.order_id)
+    if not order:
+        return
+
+    if order.status not in [StarsOrderStatus.READY, StarsOrderStatus.WAITING_FOR_USERNAME]:
+        return
+
+    order.status = StarsOrderStatus.REFUNDED
+    await autostars_storage.add_or_update_order(order)
