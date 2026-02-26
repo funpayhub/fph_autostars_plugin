@@ -24,7 +24,7 @@ class StarsOrderFormatterContext(NewOrderContext):
 
     def model_post_init(self, context: Any) -> None:
         self.order_event = self.stars_order.sale_event
-        self.new_message_event = self.order_event.new_message_event
+        self.new_message_event = self.order_event.related_new_message_event
 
 
 DESC = (

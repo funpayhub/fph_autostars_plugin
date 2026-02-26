@@ -177,7 +177,7 @@ async def update_username(
 @router.on_sale_refunded()
 @router.on_sale_partially_refunded()
 async def mark_as_refunded(event: OrderEvent, autostars_storage: Storage) -> None:
-    preview = await event.get_preview()
+    preview = await event.get_order_preview()
 
     order = await autostars_storage.get_order(preview.order_id)
     if not order:

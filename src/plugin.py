@@ -129,6 +129,7 @@ class AutostarsPlugin(Plugin):
 
     async def post_setup(self) -> None:
         self.storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
+        await self.storage.reset_checking_username_status()
 
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:
             self.logger.info(_ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
