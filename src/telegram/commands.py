@@ -13,7 +13,7 @@ from funpayhub.lib.base_app.telegram.utils import delete_message
 from funpayhub.app.telegram.ui.ids import MenuIds
 from funpayhub.app.telegram.ui.builders.context import StateUIContext
 
-from temp.autostars.src.telegram import states
+from autostars.src.telegram import states
 
 
 if TYPE_CHECKING:

@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, computed_field
 
-from temp.autostars.src.fragment_api.types import FragmentResponse
+from autostars.src.fragment_api.types import FragmentResponse
 
 
 class FragmentMethod[ReturnT](BaseModel, ABC):

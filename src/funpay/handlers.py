@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from funpayhub.app.main import FunPayHub as FPH
 
 
-from temp.autostars.src.funpay.utils import extract_stars_orders
+from autostars.src.funpay.utils import extract_stars_orders
 
 
 router = Router(name='autostars')

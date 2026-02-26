@@ -17,19 +17,19 @@ from funpayhub.lib.hub.text_formatters.category import InCategory
 from funpayhub.app.plugin import Plugin
 from funpayhub.app.formatters import GeneralFormattersCategory
 
-from temp.autostars.src.fph import router as fph_router
-from temp.autostars.src.ton import WalletProvider
-from temp.autostars.src.other import NotificationChannels
-from temp.autostars.src.funpay import funpay_router
-from temp.autostars.src.storage import Sqlite3Storage
-from temp.autostars.src.telegram import ROUTERS
-from temp.autostars.src.exceptions import TonWalletError
-from temp.autostars.src.formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
-from temp.autostars.src.properties import AutostarsProperties
-from temp.autostars.src.telegram.ui import BUILDERS
-from temp.autostars.src.fragment_api import FragmentAPI, FragmentAPIProvider
-from temp.autostars.src.transferer_service import TransferrerService
-from temp.autostars.src.telegram.middlewares import CryMiddleware
+from autostars.src.fph import router as fph_router
+from autostars.src.ton import WalletProvider
+from autostars.src.other import NotificationChannels
+from autostars.src.funpay import funpay_router
+from autostars.src.storage import Sqlite3Storage
+from autostars.src.telegram import ROUTERS
+from autostars.src.exceptions import TonWalletError
+from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
+from autostars.src.properties import AutostarsProperties
+from autostars.src.telegram.ui import BUILDERS
+from autostars.src.fragment_api import FragmentAPI, FragmentAPIProvider
+from autostars.src.transferer_service import TransferrerService
+from autostars.src.telegram.middlewares import CryMiddleware
 
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
     from funpayhub.app.dispatching import Router as HubRouter
 
-    from temp.autostars.src.types import StarsOrder
+    from autostars.src.types import StarsOrder
 
 
 AD_TEXT = (

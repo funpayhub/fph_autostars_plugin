@@ -9,7 +9,7 @@ from autostars.src.exceptions import ParsingError, UnexpectedStatus, FragmentRes
 
 
 if TYPE_CHECKING:
-    from temp.autostars.src.fragment_api.methods.base import FragmentMethod
+    from autostars.src.fragment_api.methods.base import FragmentMethod
 
 
 class Session:
