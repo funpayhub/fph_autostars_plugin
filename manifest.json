@@ -1,6 +1,6 @@
 {
   "manifest": 1,
-  "plugin_version": "0.1.0",
+  "plugin_version": "0.1.1",
   "app_version": ">=0.3.5",
   "plugin_id": "com.github.qvvonk.funpayhub.autostars_plugin",
   "name": "✨ AutoStars",
