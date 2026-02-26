@@ -5,7 +5,7 @@ import logging
 import traceback
 from typing import TYPE_CHECKING
 
-from aiogram.methods import SendDocument
+from aiogram.methods import SendDocument, SendMessage
 from aiogram.types import BufferedInputFile
 from pytoniq import LiteClient
 
@@ -183,7 +183,7 @@ class AutostarsPlugin(Plugin):
 
         self.transfer_service._on_success_callback = self.on_successful_transfer
         self.transfer_service._on_error_callback = self.on_transfer_error
-        self.transfer_service._payload_gen = self.generate_payload_text
+        self.transfer_service._payload_factory = self.generate_payload_text
 
         self.hub.workflow_data.update(
             {
@@ -225,75 +225,50 @@ class AutostarsPlugin(Plugin):
             self.hub.telegram.send_notification_from_obj(NotificationChannels.ERROR, call)
 
     async def generate_payload_text(self, order: StarsOrder, ref: str) -> str:
-        text = self.props.messages.payload_message.value
-        ad = self.props.messages.show_ad.value
-        if not text:
-            return ref if not ad else AD_TEXT + f'\n\n{ref}'
-
-        ctx = StarsOrderFormatterContext(
-            new_message_event=order.sale_event.related_new_message_event,
-            order_event=order.sale_event,
-            goods_to_deliver=[],
-            stars_order=order,
-        )
+        result = (f'\n\n{AD_TEXT}' if self.props.messages.show_ad.value else '') + ref
+        if not self.props.messages.payload_message.value:
+            return result
 
         try:
             pack = await self.hub.funpay.text_formatters.format_text(
-                text=text,
-                context=ctx,
+                text=self.props.messages.payload_message.value,
+                context=StarsOrderFormatterContext(stars_order=order),
                 query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
             )
         except Exception:
-            self.logger.error(
-                _ru('Не удалось форматировать комментарий к транзакции.'),
-                exc_info=True,
-            )
-            return ref if not ad else AD_TEXT + f'\n\n{ref}'
+            self.logger.error(_ru('Ошибка генерации комментария к транзакции.'), exc_info=True)
+            return result
 
         total_text = ''.join(i for i in pack.entries if isinstance(i, str))
-        if ad:
-            total_text += f'\n\n{AD_TEXT}'
-
         if total_text:
-            total_text += f'\n\n{ref}'
-        else:
-            total_text = ref
-        return total_text
+            result = f'{total_text}\n\n{result}'
+        return result
 
-    async def on_transfer_error(self, *orders: StarsOrder) -> None:
+    async def on_transfer_error(self, orders: list[StarsOrder]) -> None:
         await asyncio.gather(*(self._on_transfer_error(i) for i in orders))
         message_text = self.hub.translater.translate(
             '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>',
-        ).format(
-            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
-        )
-        self.hub.telegram.send_notification(
+        ).format(order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders))
+
+        self.hub.telegram.send_notification_from_obj(
             NotificationChannels.ERROR,
-            message_text,
+            SendMessage(chat_id=0, text=message_text)
         )
 
     async def _on_transfer_error(self, order: StarsOrder) -> None:
-        message = self.props.messages.transaction_failed_message.value
-        if not message:
+        if not self.props.messages.transaction_failed_message.value:
             return
-
-        ctx = StarsOrderFormatterContext(
-            new_message_event=order.sale_event.related_new_message_event,
-            order_event=order.sale_event,
-            goods_to_deliver=[],
-            stars_order=order,
-        )
 
         try:
             pack = await self.hub.funpay.text_formatters.format_text(
-                text=message,
-                context=ctx,
+                text=self.props.messages.transaction_failed_message.value,
+                context=StarsOrderFormatterContext(stars_order=order),
                 query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
             )
         except Exception:
             self.logger.error(
-                _ru('Не удалось форматировать сообщение об ошибка перевода звёзд.'),
-                exc_info=True,
+                _ru('Ошибка генерации сообщения об ошибке перевода звёзд.'),
+                exc_info=True
             )
             return
 
@@ -305,34 +280,25 @@ class AutostarsPlugin(Plugin):
                 exc_info=True,
             )
 
-    async def on_successful_transfer(self, *orders: StarsOrder) -> None:
+    async def on_successful_transfer(self, orders: list[StarsOrder]) -> None:
         await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
         message_text = self.hub.translater.translate(
             '<b>✅ Транзакции по заказам {order_ids} успешно выполнены.</b>',
-        ).format(
-            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
-        )
-        self.hub.telegram.send_notification(
-            NotificationChannels.INFO,
-            message_text,
+        ).format(order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders))
+
+        self.hub.telegram.send_notification_from_obj(
+            NotificationChannels.ERROR,
+            SendMessage(chat_id=0, text=message_text)
         )
 
     async def _on_successful_transfer(self, order: StarsOrder) -> None:
-        message = self.props.messages.transaction_completed_message.value
-        if not message:
+        if not self.props.messages.transaction_completed_message.value:
             return
-
-        ctx = StarsOrderFormatterContext(
-            new_message_event=order.sale_event.related_new_message_event,
-            order_event=order.sale_event,
-            goods_to_deliver=[],
-            stars_order=order,
-        )
 
         try:
             pack = await self.hub.funpay.text_formatters.format_text(
-                text=message,
-                context=ctx,
+                text=self.props.messages.transaction_completed_message.value,
+                context=StarsOrderFormatterContext(stars_order=order),
                 query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
             )
         except Exception:

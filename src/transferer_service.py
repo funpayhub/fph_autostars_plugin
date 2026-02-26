@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Awaitable
+from typing import TYPE_CHECKING, Any
 
 from funpayhub.lib.translater import _ru
 
@@ -28,6 +29,10 @@ class TransferrerService:
         api_provider: FragmentAPIProvider,
         wallet_provider: WalletProvider,
         logger: logging.Logger,
+        *,
+        on_success_callback: Callable[[list[StarsOrder]], Awaitable[Any]] | None = None,
+        on_error_callback: Callable[[list[StarsOrder]], Awaitable[Any]] | None = None,
+        payload_factory: Callable[[StarsOrder, str], Awaitable[str | None]] | None = None,
     ):
         self._storage = storage
         self._api_provider = api_provider
@@ -36,9 +41,9 @@ class TransferrerService:
         self._loop_stopped = False
         self.logger = logger
 
-        self._on_success_callback = None
-        self._on_error_callback = None
-        self._payload_gen = None
+        self._on_success_callback = on_success_callback
+        self._on_error_callback = on_error_callback
+        self._payload_factory = payload_factory
 
         self._stop = asyncio.Event()
         self._stopped = asyncio.Event()
@@ -82,7 +87,7 @@ class TransferrerService:
                     i.retries_left = 0
                 await self.storage.add_or_update_orders(*orders.values())
                 if self._on_error_callback:
-                    asyncio.create_task(self._on_error_callback(*orders.values()))
+                    asyncio.create_task(self._on_error_callback(list(orders.values())))
                 continue
 
             for i in orders.values():
@@ -124,7 +129,7 @@ class TransferrerService:
         if errored:
             to_execute = [i for i in errored if i.retries_left <= 0]
             if to_execute:
-                asyncio.create_task(self._on_error_callback(*to_execute))
+                asyncio.create_task(self._on_error_callback(list(to_execute)))
 
         if not orders_to_transfer:
             return
@@ -142,7 +147,7 @@ class TransferrerService:
                 i.error = ErrorTypes.UNKNOWN
             await self.storage.add_or_update_orders(*orders_to_transfer)
             if self._on_error_callback:
-                asyncio.create_task(self._on_error_callback(*orders_to_transfer))
+                asyncio.create_task(self._on_error_callback(list(orders_to_transfer)))
             return
 
         self.logger.info(
@@ -155,14 +160,14 @@ class TransferrerService:
             i.ton_transaction_id = hash
         await self.storage.add_or_update_orders(*orders_to_transfer)
         if self._on_success_callback:
-            asyncio.create_task(self._on_success_callback(*orders_to_transfer))
+            asyncio.create_task(self._on_success_callback(list(orders_to_transfer)))
 
     async def generate_payload(self, order: StarsOrder, ref: str) -> str:
-        if self._payload_gen is None:
+        if self._payload_factory is None:
             return ref
 
         try:
-            r = await self._payload_gen(order, ref)
+            r = await self._payload_factory(order, ref)
         except Exception:  # todo: log
             return ref
         return r or ref

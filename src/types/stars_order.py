@@ -20,9 +20,9 @@ from funpaybotengine.dispatching import NewSaleEvent, NewMessageEvent
 from .enums import ErrorTypes, StarsOrderType, StarsOrderStatus
 
 
-STARS_AMOUNT_RE = re.compile('^(\d+) (?:звёзд|Stars)(?:,|$)')
+STARS_AMOUNT_RE = re.compile(r'^(\d+) (?:звёзд|Stars)(?:,|$)')
 PCS_RE = re.compile(r'(?:^|, )(\d+) (?:шт|pcs)\.(?:,|$)')
-USERNAME_RE = re.compile(', @?([a-zA-Z0-9]+$)')
+USERNAME_RE = re.compile(r', @?([a-zA-Z0-9]+$)')
 
 
 class StarsOrder(BaseModel):

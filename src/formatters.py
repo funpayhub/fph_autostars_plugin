@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from funpaybotengine.dispatching import NewMessageEvent, OrderEvent
+from pydantic import Field
+
 from funpayhub.lib.hub.text_formatters import Formatter
 from funpayhub.lib.hub.text_formatters.category import FormatterCategory
 
@@ -8,12 +11,20 @@ from funpayhub.app.formatters import (
     OrderFormattersCategory,
     MessageFormattersCategory,
 )
+from typing import Any
 
 from .types import StarsOrder
 
 
 class StarsOrderFormatterContext(NewOrderContext):
+    new_message_event: NewMessageEvent = Field(default=None)
+    order_event: OrderEvent = Field(default=None)
+    goods_to_deliver: list[str] = Field(default_factory=list)
     stars_order: StarsOrder
+
+    def model_post_init(self, context: Any) -> None:
+        self.order_event = self.stars_order.sale_event
+        self.new_message_event = self.order_event.new_message_event
 
 
 DESC = (
