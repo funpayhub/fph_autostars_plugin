@@ -8,5 +8,5 @@ __all__ = [
     'GetBuyStarsLink',
 ]
 
-from .base import FragmentMethod
-from .methods import GetBuyStarsLink, InitBuyStarsRequest, SearchStarsRecipient
+from temp.autostars.src.fragment_api.methods.base import FragmentMethod
+from temp.autostars.src.fragment_api.methods.methods import GetBuyStarsLink, InitBuyStarsRequest, SearchStarsRecipient

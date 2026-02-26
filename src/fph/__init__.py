@@ -1,3 +1,3 @@
 from __future__ import annotations
 
-from .router import router
+from temp.autostars.src.fph.router import router

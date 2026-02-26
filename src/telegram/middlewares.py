@@ -7,7 +7,7 @@ from aiogram import BaseMiddleware
 
 if TYPE_CHECKING:
     from aiogram.types import CallbackQuery
-    from temp.autostars.src.properties import AutostarsProperties
+    from autostars.src.properties import AutostarsProperties
 
     from funpayhub.lib.telegram.callback_data import UnknownCallback
 

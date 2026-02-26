@@ -11,8 +11,8 @@ from pathlib import Path
 import aiosqlite
 from aiosqlite import Cursor, Connection
 
-from ..types import StarsOrder
-from ..types.enums import StarsOrderStatus
+from temp.autostars.src.types import StarsOrder
+from temp.autostars.src.types.enums import StarsOrderStatus
 
 
 class Storage(ABC):

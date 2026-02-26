@@ -1,3 +1,3 @@
 from __future__ import annotations
 
-from .handlers import router as funpay_router
+from temp.autostars.src.funpay.handlers import router as funpay_router

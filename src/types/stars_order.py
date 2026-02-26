@@ -17,7 +17,7 @@ from pydantic import (
 from funpaybotengine.types import Message, OrderPreview
 from funpaybotengine.dispatching import NewSaleEvent, NewMessageEvent
 
-from .enums import ErrorTypes, StarsOrderType, StarsOrderStatus
+from temp.autostars.src.types.enums import ErrorTypes, StarsOrderType, StarsOrderStatus
 
 
 STARS_AMOUNT_RE = re.compile(r'^(\d+) (?:звёзд|Stars)(?:,|$)')

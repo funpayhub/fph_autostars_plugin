@@ -1,3 +1,3 @@
 from __future__ import annotations
 
-from .stars_order import StarsOrder
+from temp.autostars.src.types.stars_order import StarsOrder

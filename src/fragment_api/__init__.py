@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .methods import GetBuyStarsLink, InitBuyStarsRequest, SearchStarsRecipient
-from .session import Session
+from temp.autostars.src.fragment_api.methods import GetBuyStarsLink, InitBuyStarsRequest, SearchStarsRecipient
+from temp.autostars.src.fragment_api.session import Session
 
 
 if TYPE_CHECKING:
-    from .types import BuyStarsLink, BuyStarsResponse, RecipientResponse
+    from temp.autostars.src.fragment_api.types import BuyStarsLink, BuyStarsResponse, RecipientResponse
 
 
 class FragmentAPIProvider:

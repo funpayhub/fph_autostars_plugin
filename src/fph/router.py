@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from temp.autostars.src.ton import Wallet
-from temp.autostars.src.fragment_api import FragmentAPI
+from autostars.src.ton import Wallet
+from autostars.src.fragment_api import FragmentAPI
 
 from funpayhub.app.dispatching import Router
 
 
 if TYPE_CHECKING:
-    from temp.autostars.src.ton import WalletProvider
-    from temp.autostars.src.plugin import AutostarsPlugin
-    from temp.autostars.src.properties import AutostarsProperties
-    from temp.autostars.src.fragment_api import FragmentAPIProvider
+    from autostars.src.ton import WalletProvider
+    from autostars.src.plugin import AutostarsPlugin
+    from autostars.src.properties import AutostarsProperties
+    from autostars.src.fragment_api import FragmentAPIProvider
 
     from funpayhub.lib.plugin import LoadedPlugin
     from funpayhub.lib.properties import StringParameter

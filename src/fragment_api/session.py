@@ -5,11 +5,11 @@ from json import JSONDecodeError
 
 from aiohttp import TCPConnector, ClientSession, ClientResponseError
 from pydantic import ValidationError
-from temp.autostars.src.exceptions import ParsingError, UnexpectedStatus, FragmentResponseError
+from autostars.src.exceptions import ParsingError, UnexpectedStatus, FragmentResponseError
 
 
 if TYPE_CHECKING:
-    from .methods.base import FragmentMethod
+    from temp.autostars.src.fragment_api.methods.base import FragmentMethod
 
 
 class Session:

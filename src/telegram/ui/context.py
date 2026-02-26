@@ -11,7 +11,7 @@ from funpayhub.lib.telegram.ui import MenuContext
 
 
 if TYPE_CHECKING:
-    from temp.autostars.src.types import StarsOrder
+    from autostars.src.types import StarsOrder
 
 
 @dataclass(kw_only=True)

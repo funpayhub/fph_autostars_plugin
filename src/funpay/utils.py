@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 from funpaybotengine.dispatching.events import NewSaleEvent
 
-from temp.autostars.src.types import StarsOrder
-from temp.autostars.src.types.enums import StarsOrderType
+from autostars.src.types import StarsOrder
+from autostars.src.types.enums import StarsOrderType
 
 
 if TYPE_CHECKING:

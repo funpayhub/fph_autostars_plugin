@@ -5,20 +5,20 @@ from typing import TYPE_CHECKING
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from temp.autostars.src.types.enums import StarsOrderStatus
-from temp.autostars.src.telegram.ui.context import StarsOrderMenuContext
+from autostars.src.types.enums import StarsOrderStatus
+from autostars.src.telegram.ui.context import StarsOrderMenuContext
 
 from funpayhub.lib.base_app.telegram.utils import delete_message
 
 from funpayhub.app.telegram.ui.ids import MenuIds
 from funpayhub.app.telegram.ui.builders.context import StateUIContext
 
-from . import states
+from temp.autostars.src.telegram import states
 
 
 if TYPE_CHECKING:
     from aiogram.types import Message
-    from temp.autostars.src.storage import Storage
+    from autostars.src.storage import Storage
 
     from funpayhub.lib.translater import Translater
     from funpayhub.lib.telegram.ui import UIRegistry

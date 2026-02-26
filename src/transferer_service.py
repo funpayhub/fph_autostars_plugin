@@ -7,18 +7,18 @@ from typing import TYPE_CHECKING, Any
 
 from funpayhub.lib.translater import _ru
 
-from .ton import Wallet, WalletProvider
-from .storage import Storage
-from .ton.wallet import Transfer
-from .types.enums import ErrorTypes, StarsOrderStatus
-from .fragment_api import FragmentAPIProvider
-from .fragment_api.types import BuyStarsLink
+from temp.autostars.src.ton import Wallet, WalletProvider
+from temp.autostars.src.storage import Storage
+from temp.autostars.src.ton.wallet import Transfer
+from temp.autostars.src.types.enums import ErrorTypes, StarsOrderStatus
+from temp.autostars.src.fragment_api import FragmentAPIProvider
+from temp.autostars.src.fragment_api.types import BuyStarsLink
 
 
 if TYPE_CHECKING:
     from funpayhub.app.main import FunPayHub as FPH
 
-    from .types import StarsOrder
+    from temp.autostars.src.types import StarsOrder
 
 
 class TransferrerService:

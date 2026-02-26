@@ -13,7 +13,7 @@ from funpayhub.app.formatters import (
 )
 from typing import Any
 
-from .types import StarsOrder
+from temp.autostars.src.types import StarsOrder
 
 
 class StarsOrderFormatterContext(NewOrderContext):
