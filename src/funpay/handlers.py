@@ -47,7 +47,6 @@ async def check_username(order: StarsOrder, api: FragmentAPI) -> StarsOrder:
             order.recipient_id = r.found.recipient
             return order
         except FragmentResponseError:
-            print(f'Wrong username {order.telegram_username} for order {order.order_id}.')
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
             return order
         except Exception:
@@ -64,9 +63,13 @@ async def check_username(order: StarsOrder, api: FragmentAPI) -> StarsOrder:
     return order
 
 
-async def check_usernames(orders: list[StarsOrder], storage: Storage, api: FragmentAPI | None):
+async def check_usernames(
+    orders: list[StarsOrder],
+    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]
+) -> None:
     checked: dict[StarsOrderStatus, list[StarsOrder]] = defaultdict(list)
     to_check: list[StarsOrder] = []
+    api = plugin.plugin.fragment_api_provider.api
 
     for order in orders:
         if not order.telegram_username:
@@ -81,9 +84,11 @@ async def check_usernames(orders: list[StarsOrder], storage: Storage, api: Fragm
 
     for i in await asyncio.gather(*(check_username(i, api) for i in to_check)):
         checked[i.status].append(i)
-    await storage.add_or_update_orders(*chain(*checked.values()))
+    await plugin.plugin.storage.add_or_update_orders(*chain(*checked.values()))
 
-    # todo: send notification to funpay
+    # temp
+    for i in checked[StarsOrderStatus.WAITING_FOR_USERNAME]:
+        asyncio.create_task(on_username_not_found(i, plugin))
     # todo: send notification in chat if error occurred while fetching username
 
 
@@ -125,7 +130,7 @@ async def sale_orders(
     events_stack: EventsStack,
     hub: FPH,
     autostars_storage: Storage,
-    autostars_fragment_api: FragmentAPIProvider,
+    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ) -> None:
     if not (stars_orders := await extract_stars_orders(events_stack.events, hub.instance_id)):
         return
@@ -136,9 +141,7 @@ async def sale_orders(
     )
 
     await autostars_storage.add_or_update_orders(*stars_orders)
-    asyncio.create_task(
-        check_usernames(stars_orders, autostars_storage, autostars_fragment_api.api),
-    )
+    asyncio.create_task(check_usernames(stars_orders, plugin))
 
 
 @router.on_new_message(
@@ -148,8 +151,8 @@ async def sale_orders(
 async def update_username(
     message: Message,
     autostars_storage: Storage,
-    autostars_fragment_api: FragmentAPIProvider,
     hub: FPH,
+    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ) -> None:
     args = message.text.split(' ')[1:]
     if len(args) < 2:
@@ -168,7 +171,7 @@ async def update_username(
     order.telegram_username = telegram_username
     order.status = StarsOrderStatus.CHECKING_USERNAME
     await autostars_storage.add_or_update_order(order)
-    await check_usernames([order], autostars_storage, autostars_fragment_api.api)
+    await check_usernames([order], plugin)
 
 
 @router.on_sale_refunded()
