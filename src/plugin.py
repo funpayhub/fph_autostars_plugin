@@ -64,6 +64,10 @@ class AutostarsPlugin(Plugin):
         self.props: AutostarsProperties | None = None
         self.transfer_service: TransferrerService | None = None
 
+    async def pre_setup(self) -> None:
+        logger = logging.getLogger(LiteClient.__name__)
+        logger.setLevel(logging.WARNING)
+
     async def setup_properties(self) -> None:
         self.hub.properties.telegram.notifications.attach_node(
             ListParameter(
@@ -124,10 +128,8 @@ class AutostarsPlugin(Plugin):
         return BUILDERS
 
     async def post_setup(self) -> None:
-        logger = logging.getLogger(LiteClient.__name__)
-        logger.setLevel(logging.WARNING)
-
         self.storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
+
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:
             self.logger.info(_ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
             self.fragment_api_provider.api = FragmentAPI(
@@ -141,10 +143,7 @@ class AutostarsPlugin(Plugin):
                 try:
                     await self.wallet_provider.remake_wallet(self.props.wallet.mnemonics.value)
                     balance = await self.wallet_provider.wallet.get_balance()
-                    self.logger.info(
-                        _ru('Кошелек %s подключен.'),
-                        self.wallet_provider.wallet.address,
-                    )
+                    self.logger.info(_ru('Кошелек %s подключен.'), self.wallet_provider.wallet.address)
                     self.hub.telegram.send_notification(
                         NotificationChannels.INFO,
                         self.hub.translater.translate(
@@ -164,13 +163,16 @@ class AutostarsPlugin(Plugin):
                     )
                     await asyncio.sleep(2)
             else:
-                self.hub.telegram.send_notification(
+                self.hub.telegram.send_notification_from_obj(
                     NotificationChannels.ERROR,
-                    self.hub.translater.translate(
-                        '<b>[❌ CRITICAL ❌]\n'
-                        'Не удалось подключиться к TON кошельку.\n\n'
-                        'Подробности в логах.</b>',
-                    ),
+                    SendMessage(
+                        chat_id=0,
+                        text=self.hub.translater.translate(
+                            '<b>[❌ CRITICAL ❌]\n'
+                            'Не удалось подключиться к TON кошельку.\n\n'
+                            'Подробности в логах.</b>',
+                        ),
+                    )
                 )
 
         self.transfer_service = TransferrerService(
@@ -179,11 +181,10 @@ class AutostarsPlugin(Plugin):
             self.fragment_api_provider,
             self.wallet_provider,
             self.logger,
+            on_success_callback=self.on_successful_transfer,
+            on_error_callback=self.on_transfer_error,
+            payload_factory=self.generate_payload_text,
         )
-
-        self.transfer_service._on_success_callback = self.on_successful_transfer
-        self.transfer_service._on_error_callback = self.on_transfer_error
-        self.transfer_service._payload_factory = self.generate_payload_text
 
         self.hub.workflow_data.update(
             {
