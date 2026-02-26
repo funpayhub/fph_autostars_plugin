@@ -156,7 +156,7 @@ class Sqlite3Storage(Storage):
 
     async def reset_checking_username_status(self) -> None:
         await self.raw_query(
-            'UPDATE order SET status = "WAITING_FOR_USERNAME" WHERE status = "CHECKING_USERNAME"'
+            'UPDATE orders SET status = "WAITING_FOR_USERNAME" WHERE status = "CHECKING_USERNAME"'
         )
 
     async def raw_query(
