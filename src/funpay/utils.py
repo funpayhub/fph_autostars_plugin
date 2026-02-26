@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 from funpaybotengine.dispatching.events import NewSaleEvent
 
-from ..types import StarsOrder
-from ..types.enums import StarsOrderType
+from autostars.src.types import StarsOrder
+from autostars.src.types.enums import StarsOrderType
 
 
 if TYPE_CHECKING:
@@ -14,8 +15,9 @@ if TYPE_CHECKING:
 
 category_names = {'Telegram, Звёзды', 'Telegram, Stars'}
 
+
 async def extract_stars_orders(
-    events: list[Event],
+    events: Iterable[Event],
     hub_instance: str,
     stars_type: StarsOrderType | list[StarsOrderType] = StarsOrderType.BY_USERNAME,
 ) -> list[StarsOrder]:
