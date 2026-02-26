@@ -29,7 +29,7 @@ from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI, FragmentAPIProvider
 from .transferer_service import TransferrerService
-# from .telegram.middlewares import CryMiddleware
+from .telegram.middlewares import CryMiddleware
 
 
 if TYPE_CHECKING:
@@ -88,9 +88,9 @@ class AutostarsPlugin(Plugin):
     async def telegram_routers(self) -> TGRouter | list[TGRouter]:
         return ROUTERS
 
-    # async def setup_telegram_routers(self) -> None:
-    #     mdlwr = CryMiddleware(self.props)
-    #     self.hub.telegram.dispatcher.callback_query.outer_middleware(mdlwr)
+    async def setup_telegram_routers(self) -> None:
+        mdlwr = CryMiddleware(self.props)
+        self.hub.telegram.dispatcher.callback_query.outer_middleware(mdlwr)
 
     async def funpay_routers(self) -> FPRouter | list[FPRouter]:
         return funpay_router
