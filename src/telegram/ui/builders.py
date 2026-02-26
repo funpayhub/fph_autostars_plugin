@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import html
 
-from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
+from temp.autostars.src.types.enums import ErrorTypes, StarsOrderStatus
 
 from funpayhub.lib.telegram.ui import Menu, MenuBuilder
 from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import StripAndNavigationFinalizer

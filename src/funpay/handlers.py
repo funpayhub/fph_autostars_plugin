@@ -9,9 +9,9 @@ from collections import defaultdict
 from funpaybotengine import Router
 from funpaybotengine.dispatching import OrderEvent
 
-from autostars.src.exceptions import FragmentResponseError
-from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
-from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
+from temp.autostars.src.exceptions import FragmentResponseError
+from temp.autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
+from temp.autostars.src.types.enums import ErrorTypes, StarsOrderStatus
 
 from funpayhub.lib.translater import _ru
 from funpayhub.lib.hub.text_formatters.category import InCategory
@@ -20,12 +20,12 @@ from funpayhub.app.formatters import GeneralFormattersCategory
 
 
 if TYPE_CHECKING:
-    from autostars.src.types import StarsOrder
-    from autostars.src.plugin import AutostarsPlugin
-    from autostars.src.storage import Storage
+    from temp.autostars.src.types import StarsOrder
+    from temp.autostars.src.plugin import AutostarsPlugin
+    from temp.autostars.src.storage import Storage
     from funpaybotengine.runner import EventsStack
-    from autostars.src.properties import AutostarsProperties
-    from autostars.src.fragment_api import FragmentAPI, FragmentAPIProvider
+    from temp.autostars.src.properties import AutostarsProperties
+    from temp.autostars.src.fragment_api import FragmentAPI
     from funpaybotengine.types import Message
     from funpayhub.lib.plugin import LoadedPlugin
 

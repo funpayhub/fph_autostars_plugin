@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from autostars.src.types.enums import StarsOrderStatus
-from autostars.src.telegram.ui.context import StarsOrderMenuContext
+from temp.autostars.src.types.enums import StarsOrderStatus
+from temp.autostars.src.telegram.ui.context import StarsOrderMenuContext
 
 from funpayhub.lib.base_app.telegram.utils import delete_message
 
@@ -18,7 +18,7 @@ from . import states
 
 if TYPE_CHECKING:
     from aiogram.types import Message
-    from autostars.src.storage import Storage
+    from temp.autostars.src.storage import Storage
 
     from funpayhub.lib.translater import Translater
     from funpayhub.lib.telegram.ui import UIRegistry

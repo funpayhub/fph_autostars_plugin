@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, Self
 from dataclasses import dataclass
 
 from pytoniq import Address, LiteClient, WalletV5R1
-from autostars.src.utils import get_mainnet_config
-from autostars.src.exceptions import TonWalletError
+from temp.autostars.src.utils import get_mainnet_config
+from temp.autostars.src.exceptions import TonWalletError
 
 
 if TYPE_CHECKING:
-    from autostars.src.fragment_api.types import BuyStarsLink
+    from temp.autostars.src.fragment_api.types import BuyStarsLink
 
 
 @dataclass
