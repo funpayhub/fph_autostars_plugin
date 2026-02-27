@@ -5,9 +5,14 @@ import asyncio
 from typing import TYPE_CHECKING, Self
 from dataclasses import dataclass
 
-from pytoniq import Address, LiteClient, WalletV5R1
+
 from autostars.src.utils import get_mainnet_config
 from autostars.src.exceptions import TonWalletError
+from pytoniq import Address, LiteClient, WalletV5R1, Cell
+from pytoniq.contract.wallets.wallet_v5 import WALLET_V5_R1_CODE
+from pytoniq_core import WalletMessage, StateInit, MessageAny
+from pytoniq_core.crypto.keys import mnemonic_to_private_key, mnemonic_is_valid
+import datetime
 
 
 if TYPE_CHECKING:
@@ -25,132 +30,118 @@ class Transfer:
         if self.valid_until is None:
             self.valid_until = int(time.time() + 60)
 
-    @classmethod
-    def from_buy_stars_link(cls, link: BuyStarsLink, payload: str = '') -> Self:
-        return cls(
-            address=link.transaction.messages[0].address,
-            amount=link.transaction.messages[0].amount,
-            valid_until=link.transaction.valid_until,
-            payload=payload,
+
+class OfflineV5R1Wallet:
+    def __init__(self, mnemonic: str) -> None:
+        if not mnemonic_is_valid(mnemonic.split(' ')):
+            raise ValueError('Invalid mnemonic.')
+
+        self._mnemonic = mnemonic
+        self._public_key, self._private_key = mnemonic_to_private_key(mnemonic.split(' '))
+
+        data_cell = WalletV5R1.create_data_cell(
+            self._public_key,
+            wallet_id=self.wallet_id,
+            network_global_id=-239,
         )
+        state_init = StateInit(code=WALLET_V5_R1_CODE, data=data_cell)
+        self._address = Address(f'0:{state_init.serialize().hash}')
+
+    @staticmethod
+    def create_internal_message(destination: str, amount: int, body: str) -> WalletMessage:
+        return WalletV5R1.create_wallet_internal_message(
+            destination=Address(destination),
+            value=amount,
+            body=body
+        )
+
+    def create_transfer_message(
+        self,
+        seqno: int,
+        messages: list[WalletMessage],
+        valid_until: int
+    ) -> Cell:
+        return WalletV5R1.raw_create_transfer_msg(
+            WalletV5R1,
+            private_key=self._private_key,
+            seqno=seqno,
+            wallet_id=self.wallet_id,
+            messages=messages,
+            valid_until=valid_until,
+        )
+
+    def create_external_message(self, body: Cell = None) -> MessageAny:
+        return WalletV5R1.create_external_msg(dest=self.address, body=body)
+
+    def create_external_transfer_message(
+        self,
+        seqno: int,
+        transfers: list[Transfer]
+    ) -> tuple[str, str]:
+        """
+        Создает external transfer message.
+
+        Возвращает (.to_boc.hex(), hash.hex())
+        """
+        messages = [
+            self.create_internal_message(
+                destination=i.address,
+                amount=i.amount,
+                body=i.payload
+            )
+            for i in transfers
+        ]
+        tr_message = self.create_transfer_message(
+            seqno,
+            messages,
+            max(transfers, key=lambda i: i.valid_until).valid_until
+        )
+        ext = self.create_external_message(tr_message).serialize()
+        return ext.to_boc().hex(), ext.hash.hex()
+
+    @property
+    def mnemonic(self) -> str:
+        return self._mnemonic
+
+    @property
+    def wallet_id(self) -> int:
+        return 2147483409
+
+    @property
+    def address(self) -> Address:
+        return self._address
 
 
 class WalletProvider:
     def __init__(self):
         self.wallet = None
 
-    async def remake_wallet(self, mnemonics: str) -> None:
-        self.wallet = await Wallet.from_mnemonics(mnemonics)
-
 
 class Wallet:
-    def __init__(self, client: LiteClient, wallet: WalletV5R1):
-        self._client = client
-        self._wallet = wallet
+    def __init__(self, offline_wallet: OfflineV5R1Wallet) -> None:
+        self._offline_wallet = offline_wallet
         self._transfer_lock = asyncio.Lock()
 
     @property
-    def client(self) -> LiteClient:
-        return self._client
-
-    @property
     def address(self) -> str:
-        return self._wallet.address.to_str()
+        return self._offline_wallet.address.to_str()
 
     @property
-    def wallet(self) -> WalletV5R1:
-        return self._wallet
+    def offline_wallet(self) -> OfflineV5R1Wallet:
+        return self._offline_wallet
 
     @classmethod
-    async def _from_mnemonics(cls, mnemonics: str) -> Self:
-        config = await get_mainnet_config()
-
-        for i in range(len(config['liteservers'])):
-            client = LiteClient.from_config(config=config, trust_level=3, ls_i=i, timeout=2)
-            try:
-                await client.connect()
-                break
-            except Exception:
-                continue
-        else:
-            raise RuntimeError('Unable to connect to LiteServer.')
-
-        wallet = await WalletV5R1.from_mnemonic(
-            provider=client,
-            mnemonics=mnemonics,
-            network_global_id=-239,
-        )
-
-        return cls(client, wallet)
-
-    @classmethod
-    async def from_mnemonics(cls, mnemonics: str) -> Self:
-        try:
-            return await cls._from_mnemonics(mnemonics)
-        except Exception as e:
-            raise TonWalletError('Unable to connect to wallet.') from e
-
-    @classmethod
-    async def testnet_from_mnemonics(cls, mnemonics: str) -> Self:
-        client = LiteClient.from_testnet_config(trust_level=3)
-        await client.connect()
-        wallet = await WalletV5R1.from_mnemonic(
-            provider=client,
-            mnemonics=mnemonics,
-            network_global_id=-3,
-        )
-        return cls(client, wallet)
+    def from_mnemonics(cls, mnemonics: str) -> Self:
+        ...
 
     async def get_balance(self) -> int:
-        return await self.wallet.get_balance()
+        ...
 
     async def _transfer(self, *transfers: Transfer) -> str:
-        seqno = await self.wallet.get_seqno()
-        messages = [
-            self.wallet.create_wallet_internal_message(
-                destination=Address(i.address),
-                value=i.amount,
-                body=i.payload,
-            )
-            for i in transfers
-        ]
-        transfer_msg = self.wallet.raw_create_transfer_msg(
-            private_key=self.wallet.private_key,
-            seqno=seqno,
-            wallet_id=self.wallet.wallet_id,
-            messages=messages,
-            valid_until=max(transfers, key=lambda i: i.valid_until).valid_until,
-        )
-        await self.wallet.send_external(body=transfer_msg)
-        return transfer_msg.hash.hex()
+        ...
 
     async def transfer(self, *transfers: Transfer) -> str:
-        valid_until = max(transfers, key=lambda i: i.valid_until).valid_until
-        async with self._transfer_lock:
-            hash = await self._transfer(*transfers)
-            tr = await self.wait_for_transfer(hash, valid_until)
-            return tr
+        ...
 
     async def wait_for_transfer(self, hash: str, valid_until: int) -> str:
-        first = True
-
-        while True:
-            if first:
-                first = False
-            else:
-                await asyncio.sleep(1)
-
-            t = time.time()
-            try:
-                transactions = await self.client.get_transactions(self.wallet.address, count=10)
-            except:
-                continue  # todo
-
-            for i in transactions:
-                if i.in_msg.body.hash.hex() == hash:
-                    return i.cell.hash.hex()
-            else:
-                if t > valid_until:
-                    raise TimeoutError(
-                        f'Transfer {hash} timed out after {valid_until - t} seconds',
-                    )
+        ...
