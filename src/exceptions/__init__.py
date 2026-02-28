@@ -13,7 +13,7 @@ class FragmentException(AutostarsPluginException): ...
 class FragmentSessionError(AutostarsPluginException): ...
 
 
-class ParsingError(FragmentSessionError):
+class FragmentParsingError(FragmentSessionError):
     def __init__(self, method_name: str) -> None:
         super().__init__(
             _ru('Произошла при парсиге ответа на метод %s.'),
@@ -23,7 +23,7 @@ class ParsingError(FragmentSessionError):
         self.method_name = method_name
 
 
-class UnexpectedStatus(FragmentSessionError):
+class FragmentUnexpectedStatus(FragmentSessionError):
     def __init__(self, method_name: str, status: int) -> None:
         super().__init__(
             _ru('Произошла ошибка при запросе %s. Статус: %s.'),
@@ -73,4 +73,27 @@ class FailedToCreateStarsLink(FragmentAPIError):
         )
 
 
-class TonWalletError(AutostarsPluginException): ...
+class TonAPIError(AutostarsPluginException): ...
+
+
+class TonAPISessionError(TonAPIError): ...
+
+
+class TonAPIParsingError(TonAPISessionError):
+    def __init__(self, method_path: str) -> None:
+        super().__init__(_ru('Произошла при парсиге ответа на метод %s.'), method_path)
+
+        self.method_path = method_path
+
+
+class TonAPIUnexpectedStatus(TonAPISessionError):
+    def __init__(self, method_path: str, status: int, error: str | None = None) -> None:
+        super().__init__(
+            _ru('Произошла ошибка при запросе %s. Статус: %s. Ошиюка %s'),
+            method_path,
+            status,
+            error
+        )
+        self.method_path = method_path
+        self.error = error
+        self.status = status

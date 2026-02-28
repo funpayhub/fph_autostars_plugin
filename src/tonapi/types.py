@@ -1,5 +1,8 @@
 __all__ = [
-    'TonAPIResponse'
+    'TonAPIResponse',
+    'Seqno',
+    'Transaction',
+    'Wallet'
 ]
 
 

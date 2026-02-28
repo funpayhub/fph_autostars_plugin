@@ -24,7 +24,7 @@ class TonAPIMethod[ReturnT](BaseModel, ABC):
     return_type: ClassVar[ReturnT] = None
 
     def get_path(self) -> str:
-        return self.path(self) if callable(self.path) else self.path
+        return self.path() if callable(self.path) else self.path
 
 
 class SendMessage(TonAPIMethod):

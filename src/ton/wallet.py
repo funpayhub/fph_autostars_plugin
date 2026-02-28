@@ -6,17 +6,13 @@ from typing import TYPE_CHECKING, Self
 from dataclasses import dataclass
 
 
-from autostars.src.utils import get_mainnet_config
-from autostars.src.exceptions import TonWalletError
-from pytoniq import Address, LiteClient, WalletV5R1, Cell
+from pytoniq import Address, WalletV5R1, Cell
 from pytoniq.contract.wallets.wallet_v5 import WALLET_V5_R1_CODE
 from pytoniq_core import WalletMessage, StateInit, MessageAny
 from pytoniq_core.crypto.keys import mnemonic_to_private_key, mnemonic_is_valid
-import datetime
-
 
 if TYPE_CHECKING:
-    from autostars.src.fragment_api.types import BuyStarsLink
+    from autostars.src.autostars_provider import AutostarsProvider
 
 
 @dataclass
@@ -112,15 +108,11 @@ class OfflineV5R1Wallet:
         return self._address
 
 
-class WalletProvider:
-    def __init__(self):
-        self.wallet = None
-
-
 class Wallet:
-    def __init__(self, offline_wallet: OfflineV5R1Wallet) -> None:
+    def __init__(self, offline_wallet: OfflineV5R1Wallet, provider: AutostarsProvider) -> None:
         self._offline_wallet = offline_wallet
         self._transfer_lock = asyncio.Lock()
+        self._provider = provider
 
     @property
     def address(self) -> str:
@@ -130,18 +122,27 @@ class Wallet:
     def offline_wallet(self) -> OfflineV5R1Wallet:
         return self._offline_wallet
 
+    @property
+    def provider(self) -> AutostarsProvider:
+        return self._provider
+
     @classmethod
-    def from_mnemonics(cls, mnemonics: str) -> Self:
-        ...
+    async def from_mnemonics(cls, mnemonics: str, provider: AutostarsProvider) -> Self:
+        wallet = OfflineV5R1Wallet(mnemonics)
+        wallet_info = await provider.tonapi.get_wallet(wallet.address.to_str())
+        if not wallet_info.is_wallet:
+            raise ValueError('Invalid wallet.')
 
     async def get_balance(self) -> int:
-        ...
+        return (await self.provider.tonapi.get_wallet(self.address)).balance
 
-    async def _transfer(self, *transfers: Transfer) -> str:
-        ...
+    async def transfer(self, seqno: int | None = None, *transfers: Transfer) -> tuple[str, str]:
+        if seqno is None:
+            seqno = (await self.provider.tonapi.get_seqno(self.address)).seqno
 
-    async def transfer(self, *transfers: Transfer) -> str:
-        ...
+        msg = self.offline_wallet.create_external_transfer_message(seqno, *transfers)
+        await self.provider.tonapi.send_message(boc=msg[0])
+        return msg
 
-    async def wait_for_transfer(self, hash: str, valid_until: int) -> str:
+    async def wait_for_transfer(self, msg_hash: str, valid_until: int) -> str:
         ...
