@@ -110,7 +110,7 @@ class MessagesProperties(Properties):
                     '🌟 $order<counterparty.username>, '
                     '$autostars<stars_amount> звёзд успешно переведены на аккаунт '
                     '@$autostars<telegram_username>.\n\n'
-                    '#️⃣ Хэш TON транзакции: $autostars<ton_transaction_id>.'
+                    '#️⃣ Хэш TON транзакции: $autostars<transaction_hash>.'
                 ),
                 flags=[TelegramUIEmojiFlag('✅')],
             ),

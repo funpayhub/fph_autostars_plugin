@@ -10,11 +10,6 @@ if TYPE_CHECKING:
     from .types import BuyStarsLink, BuyStarsResponse, RecipientResponse
 
 
-class FragmentAPIProvider:
-    def __init__(self) -> None:
-        self.api: FragmentAPI | None = None
-
-
 class FragmentAPI:
     def __init__(self, cookies: str, hash: str):
         self._cookies = cookies

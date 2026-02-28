@@ -71,9 +71,9 @@ class StarsOrderInfoMenuBuilder(
                 )
             )
 
-        if ctx.stars_order.status is StarsOrderStatus.DONE and ctx.stars_order.ton_transaction_id:
+        if ctx.stars_order.status is StarsOrderStatus.DONE and ctx.stars_order.transaction_hash:
             menu.main_text += '#️⃣ <b><i>Hash транзакции:</i></b> <code>{hash}</code>\n'.format(
-                hash=ctx.stars_order.ton_transaction_id,
+                hash=ctx.stars_order.transaction_hash,
             )
 
         menu.main_text = menu.main_text.strip()

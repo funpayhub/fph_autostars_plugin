@@ -12,7 +12,7 @@ class AutostarsProvider:
     def __init__(
         self,
         tonapi: TonAPI,
-        fragmentapi: FragmentAPI,
+        fragmentapi: FragmentAPI | None = None,
         wallet: Wallet | None = None,
     ):
         self._tonapi = tonapi
@@ -24,7 +24,7 @@ class AutostarsProvider:
         return self._tonapi
 
     @property
-    def fragmentapi(self) -> FragmentAPI:
+    def fragmentapi(self) -> FragmentAPI | None:
         return self._fragmentapi
 
     @property

@@ -9,7 +9,9 @@ from dataclasses import dataclass
 from pytoniq import Address, WalletV5R1, Cell
 from pytoniq.contract.wallets.wallet_v5 import WALLET_V5_R1_CODE
 from pytoniq_core import WalletMessage, StateInit, MessageAny
+from pytoniq import WalletV5R1
 from pytoniq_core.crypto.keys import mnemonic_to_private_key, mnemonic_is_valid
+from autostars.src.tonapi.types import Wallet as TonAPIWallet
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
@@ -41,7 +43,7 @@ class OfflineV5R1Wallet:
             network_global_id=-239,
         )
         state_init = StateInit(code=WALLET_V5_R1_CODE, data=data_cell)
-        self._address = Address(f'0:{state_init.serialize().hash}')
+        self._address = Address((0, state_init.serialize().hash))
 
     @staticmethod
     def create_internal_message(destination: str, amount: int, body: str) -> WalletMessage:
@@ -72,7 +74,7 @@ class OfflineV5R1Wallet:
     def create_external_transfer_message(
         self,
         seqno: int,
-        transfers: list[Transfer]
+        *transfers: Transfer
     ) -> tuple[str, str]:
         """
         Создает external transfer message.
@@ -113,6 +115,7 @@ class Wallet:
         self._offline_wallet = offline_wallet
         self._transfer_lock = asyncio.Lock()
         self._provider = provider
+        self._last_info: TonAPIWallet | None = None
 
     @property
     def address(self) -> str:
@@ -132,11 +135,13 @@ class Wallet:
         wallet_info = await provider.tonapi.get_wallet(wallet.address.to_str())
         if not wallet_info.is_wallet:
             raise ValueError('Invalid wallet.')
+        clss_ = cls(wallet, provider)
+        clss_._last_info = wallet_info
 
     async def get_balance(self) -> int:
         return (await self.provider.tonapi.get_wallet(self.address)).balance
 
-    async def transfer(self, seqno: int | None = None, *transfers: Transfer) -> tuple[str, str]:
+    async def transfer(self, *transfers: Transfer, seqno: int | None = None,) -> tuple[str, str]:
         if seqno is None:
             seqno = (await self.provider.tonapi.get_seqno(self.address)).seqno
 

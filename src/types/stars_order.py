@@ -30,14 +30,16 @@ class StarsOrder(BaseModel):
 
     message_obj: Message
     order_preview: OrderPreview
+
     telegram_username: str | None
     username_checked: bool = False
     recipient_id: str | None = None
+    fragment_request_id: str | None = None
+    in_msg_hash: str | None = None
+    transaction_hash: str | None = None
+    hub_instance: str
     status: StarsOrderStatus = StarsOrderStatus.UNPROCESSED
     error: ErrorTypes | None = None
-    fragment_request_id: str | None = None
-    ton_transaction_id: str | None = None
-    hub_instance: str
     retries_left: int = 3
     _sale_event: NewSaleEvent | None = PrivateAttr(default=None)
 

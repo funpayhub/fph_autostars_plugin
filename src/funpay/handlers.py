@@ -25,9 +25,7 @@ if TYPE_CHECKING:
     from funpaybotengine.runner import EventsStack
     from autostars.src.properties import AutostarsProperties
     from autostars.src.fragment_api import FragmentAPI, FragmentAPIProvider
-
     from funpayhub.lib.plugin import LoadedPlugin
-
     from funpayhub.app.main import FunPayHub as FPH
 
 
@@ -35,10 +33,6 @@ from .utils import extract_stars_orders
 
 
 router = Router(name='autostars')
-
-
-TELEGRAM_CATEGORY_ID = 224
-STARS_SUBCATEGORY_ID = 2418
 
 
 async def check_username(
@@ -147,15 +141,7 @@ async def sale_orders(
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
     autostars_fragment_api: FragmentAPIProvider,
 ) -> None:
-    cat = await hub.funpay.bot.storage.get_category(TELEGRAM_CATEGORY_ID)
-    subcat = [
-        i
-        for i in cat.subcategories
-        if i.type == SubcategoryType.OFFERS and i.id == STARS_SUBCATEGORY_ID
-    ][0]
-
-    name = f'{cat.name}, {subcat.name}'
-    stars_orders = await extract_stars_orders(events_stack.events, name, hub.instance_id)
+    stars_orders = await extract_stars_orders(events_stack.events, hub.instance_id)
     if not stars_orders:
         plugin.plugin.logger.debug(
             _ru('Нет событий о продаже связанных с Telegram stars. Events pack: %s.'),

@@ -6,35 +6,29 @@ from typing import TYPE_CHECKING
 
 from funpayhub.lib.translater import _ru
 
-from .ton import Wallet, WalletProvider
-from .storage import Storage
-from .ton.wallet import Transfer
-from .types.enums import ErrorTypes, StarsOrderStatus
-from .fragment_api import FragmentAPIProvider
+from autostars.src.ton import Wallet
+from autostars.src.storage import Storage
+from autostars.src.ton.wallet import Transfer
+from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
+from logging import getLogger
 from .fragment_api.types import BuyStarsLink
 
 
 if TYPE_CHECKING:
     from funpayhub.app.main import FunPayHub as FPH
+    from autostars.src.autostars_provider import AutostarsProvider
+    from autostars.src.types import StarsOrder
 
-    from .types import StarsOrder
+
+logger = getLogger('funpayhub.com_github_qvvonk_funpayhub_autostars_plugin')
 
 
 class TransferrerService:
-    def __init__(
-        self,
-        hub: FPH,
-        storage: Storage,
-        api_provider: FragmentAPIProvider,
-        wallet_provider: WalletProvider,
-        logger: logging.Logger,
-    ):
+    def __init__(self, hub: FPH, storage: Storage, provider: AutostarsProvider):
         self._storage = storage
-        self._api_provider = api_provider
-        self._wallet_provider = wallet_provider
+        self._provider = provider
         self._hub = hub
         self._loop_stopped = False
-        self.logger = logger
 
         self._on_success_callback = None
         self._on_error_callback = None
@@ -51,22 +45,22 @@ class TransferrerService:
             raise
 
     async def _main_loop(self) -> None:
-        self.logger.info(_ru('Autostars service запущен.'))
+        logger.info(_ru('Autostars service запущен.'))
         self._stopped.clear()
         while True:
             if self._stop.is_set():
                 self._stopped.set()
-                self.logger.info(_ru('Autostars service остановлен.'))
+                logger.info(_ru('Autostars service остановлен.'))
                 return
 
             await asyncio.sleep(2)
 
-            fragment_api = self.api_provider.api
-            wallet = self.wallet_provider.wallet
+            fragment_api = self.provider.fragmentapi
+            wallet = self.provider.wallet
 
             orders = await self.storage.get_ready_orders(instance_id=self.hub.instance_id)
             if not orders:
-                self.logger.debug(_ru('Нет готовых для перевода заказов.'))
+                logger.debug(_ru('Нет готовых для перевода заказов.'))
                 continue
 
             error = None
@@ -109,7 +103,7 @@ class TransferrerService:
                 )
                 orders_to_transfer[i] = transfer
             except Exception:
-                self.logger.error(
+                logger.error(
                     _ru('Не удалось получить ссылку на оплату звезд по заказу %s (telegram: %s)'),
                     i.order_id,
                     i.telegram_username,
@@ -132,7 +126,7 @@ class TransferrerService:
         try:
             hash = await wallet.transfer(*orders_to_transfer.values())
         except Exception:  # todo: recreate wallet if timeout; check -13 code
-            self.logger.error(
+            logger.error(
                 'Не удалось выполнить перевод TON для заказов %s.',
                 [i.order_id for i in orders_to_transfer],
                 exc_info=True,
@@ -145,14 +139,14 @@ class TransferrerService:
                 asyncio.create_task(self._on_error_callback(*orders_to_transfer))
             return
 
-        self.logger.info(
+        logger.info(
             'Успешно перевел TON для заказов %s. Хэш транзакции: %s.',
             [i.order_id for i in orders_to_transfer],
             hash,
         )
         for i in orders_to_transfer:
             i.status = StarsOrderStatus.DONE
-            i.ton_transaction_id = hash
+            i.transaction_hash = hash
         await self.storage.add_or_update_orders(*orders_to_transfer)
         if self._on_success_callback:
             asyncio.create_task(self._on_success_callback(*orders_to_transfer))
@@ -168,11 +162,11 @@ class TransferrerService:
         return r or ref
 
     async def get_stars_link(self, recipient_id: str | None, amount: int) -> BuyStarsLink:
-        init_link = await self.api_provider.api.init_buy_stars_request(
+        init_link = await self.provider.fragmentapi.init_buy_stars_request(
             recipient=recipient_id,
             quantity=amount,
         )
-        return await self.api_provider.api.get_buy_stars_link(init_link.request_id)
+        return await self.provider.fragmentapi.get_buy_stars_link(init_link.request_id)
 
     async def stop(self) -> None:
         if not self._stop.is_set():
@@ -184,12 +178,8 @@ class TransferrerService:
         return self._storage
 
     @property
-    def api_provider(self) -> FragmentAPIProvider:
-        return self._api_provider
-
-    @property
-    def wallet_provider(self) -> WalletProvider:
-        return self._wallet_provider
+    def provider(self) -> AutostarsProvider:
+        return self._provider
 
     @property
     def hub(self) -> FPH:

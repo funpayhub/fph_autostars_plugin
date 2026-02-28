@@ -67,7 +67,7 @@ class Sqlite3Storage(Storage):
                 "status"	          TEXT    NOT NULL,
                 "error"	              TEXT,
                 "fragment_request_id" TEXT,
-                "ton_transaction_id"  TEXT,
+                "transaction_hash"  TEXT,
                 "message_obj"	      TEXT    NOT NULL,
                 "order_preview"	      TEXT    NOT NULL,
                 "hub_instance"        TEXT    NOT NULL,

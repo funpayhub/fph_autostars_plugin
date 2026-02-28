@@ -18,16 +18,17 @@ from funpayhub.app.plugin import Plugin
 from funpayhub.app.formatters import GeneralFormattersCategory
 
 from .fph import router as fph_router
-from .ton import WalletProvider
 from .other import NotificationChannels
 from .funpay import funpay_router
 from .storage import Sqlite3Storage
 from .telegram import ROUTERS
-from .exceptions import TonWalletError
 from .formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
+from autostars.src.autostars_provider import AutostarsProvider
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
-from .fragment_api import FragmentAPI, FragmentAPIProvider
+from .fragment_api import FragmentAPI
+from .ton import Wallet
+from .tonapi import TonAPI
 from .transferer_service import TransferrerService
 # from .telegram.middlewares import CryMiddleware
 
@@ -57,8 +58,8 @@ class AutostarsPlugin(Plugin):
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.fragment_api_provider = FragmentAPIProvider()
-        self.wallet_provider = WalletProvider()
+        self.api = TonAPI()
+        self.provider = AutostarsProvider(self.api)
         self.storage = None
 
         self.props: AutostarsProperties | None = None
@@ -130,7 +131,7 @@ class AutostarsPlugin(Plugin):
         self.storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:
             self.logger.info(_ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
-            self.fragment_api_provider.api = FragmentAPI(
+            self.provider._fragmentapi = FragmentAPI(
                 self.props.wallet.cookies.value,
                 self.props.wallet.fragment_hash.value,
             )
@@ -139,24 +140,22 @@ class AutostarsPlugin(Plugin):
             self.logger.info(_ru('Мнемоники найдены в настройках. Создаю кошелек.'))
             for i in range(3):
                 try:
-                    await self.wallet_provider.remake_wallet(self.props.wallet.mnemonics.value)
-                    balance = await self.wallet_provider.wallet.get_balance()
-                    self.logger.info(
-                        _ru('Кошелек %s подключен.'),
-                        self.wallet_provider.wallet.address,
+                    self.provider._wallet = await Wallet.from_mnemonics(
+                        self.props.wallet.mnemonics.value, self.provider
                     )
+                    self.logger.info(_ru('Кошелек %s подключен.'), self.provider.wallet.address)
                     self.hub.telegram.send_notification(
                         NotificationChannels.INFO,
                         self.hub.translater.translate(
                             '<b>✅ TON кошелек <code>{address}</code> подключен.\n\n'
                             '💰Баланс: <code>{balance}</code> TON</b>',
                         ).format(
-                            address=self.wallet_provider.wallet.address,
-                            balance=balance / 1_000_000_000,
+                            address=self.provider.wallet.address,
+                            balance=self.provider.wallet._last_info.balance / 1_000_000_000,
                         ),
                     )
                     break
-                except TonWalletError:
+                except Exception:
                     self.logger.error(
                         _ru('Произошла ошибка при подключении к кошельку. Попытка: %d/3.'),
                         i + 1,
@@ -176,8 +175,6 @@ class AutostarsPlugin(Plugin):
         self.transfer_service = TransferrerService(
             self.hub,
             self.storage,
-            self.fragment_api_provider,
-            self.wallet_provider,
             self.logger,
         )
 
@@ -187,9 +184,8 @@ class AutostarsPlugin(Plugin):
 
         self.hub.workflow_data.update(
             {
+                'autostars_provider': self.provider,
                 'autostars_storage': self.storage,
-                'autostars_wallet': self.wallet_provider,
-                'autostars_fragment_api': self.fragment_api_provider,
                 'autostars_service': self.transfer_service,
             },
         )
