@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING
 from itertools import chain
 from collections import defaultdict
@@ -10,13 +9,14 @@ from funpaybotengine import Router
 from autostars.src.exceptions import FragmentResponseError
 from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
-from funpaybotengine.types.enums import SubcategoryType
 
 from funpayhub.lib.translater import _ru
 from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.formatters import GeneralFormattersCategory
+import logging
 
+from autostars.src.autostars_provider import AutostarsProvider
 
 if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
@@ -30,14 +30,15 @@ if TYPE_CHECKING:
 
 
 from .utils import extract_stars_orders
+import re
 
 
 router = Router(name='autostars')
+username_re = re.compile(r'@?[a-zA-Z0-9_]{4,32}')
+logger = logging.getLogger('funpayhub.com_github_qvvonk_funpayhub_autostars_plugin')
 
 
-async def check_username(
-    order: StarsOrder, api: FragmentAPI, logger: logging.Logger
-) -> StarsOrder:
+async def check_username(order: StarsOrder, api: FragmentAPI) -> StarsOrder:
     for attempt in range(3):
         try:
             r = await api.search_stars_recipient(order.telegram_username)
@@ -61,29 +62,22 @@ async def check_username(
     return order
 
 
-async def check_usernames(
-    orders: list[StarsOrder],
-    storage: Storage,
-    api_provider: FragmentAPIProvider,
-    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
-):
+async def check_usernames(orders: list[StarsOrder], storage: Storage, provider: AutostarsProvider):
     checked: dict[StarsOrderStatus, list[StarsOrder]] = defaultdict(list)
 
     to_check: list[StarsOrder] = []
     for order in orders:
-        if not order.telegram_username:
+        if not order.telegram_username or not username_re.fullmatch(order.telegram_username):
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
             checked[order.status].append(order)
-        elif api_provider.api is None:
+        elif provider.fragmentapi is None:
             order.status = StarsOrderStatus.ERROR
             order.error = ErrorTypes.FRAGMENT_API_NOT_PROVIDED
             checked[order.status].append(order)
         else:
             to_check.append(order)
 
-    r = await asyncio.gather(
-        *(check_username(i, api_provider.api, plugin.plugin.logger) for i in to_check)
-    )
+    r = await asyncio.gather(*(check_username(i, provider.fragmentapi) for i in to_check))
     for i in r:
         checked[i.status].append(i)
     await storage.add_or_update_orders(*chain(*checked.values()))
@@ -138,23 +132,20 @@ async def sale_orders(
     events_stack: EventsStack,
     hub: FPH,
     autostars_storage: Storage,
-    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
-    autostars_fragment_api: FragmentAPIProvider,
+    autostars_provider: AutostarsProvider,
 ) -> None:
     stars_orders = await extract_stars_orders(events_stack.events, hub.instance_id)
     if not stars_orders:
-        plugin.plugin.logger.debug(
+        logger.debug(
             _ru('Нет событий о продаже связанных с Telegram stars. Events pack: %s.'),
             events_stack.id,
         )
         return
 
-    plugin.plugin.logger.info(
+    logger.info(
         _ru('Добавляю данные о заказах %s в базу данных.'),
         [i.order_id for i in stars_orders],
     )
 
     await autostars_storage.add_or_update_orders(*stars_orders)
-    asyncio.create_task(
-        check_usernames(stars_orders, autostars_storage, autostars_fragment_api, plugin),
-    )
+    asyncio.create_task(check_usernames(stars_orders, autostars_storage, autostars_provider))
