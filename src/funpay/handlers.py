@@ -17,20 +17,18 @@ from funpayhub.app.formatters import GeneralFormattersCategory
 import logging
 
 from autostars.src.autostars_provider import AutostarsProvider
+from .utils import extract_stars_orders
+import re
 
 if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
     from autostars.src.plugin import AutostarsPlugin
-    from autostars.src.storage import Storage
     from funpaybotengine.runner import EventsStack
     from autostars.src.properties import AutostarsProperties
     from autostars.src.fragment_api import FragmentAPI, FragmentAPIProvider
     from funpayhub.lib.plugin import LoadedPlugin
     from funpayhub.app.main import FunPayHub as FPH
 
-
-from .utils import extract_stars_orders
-import re
 
 
 router = Router(name='autostars')
@@ -62,8 +60,9 @@ async def check_username(order: StarsOrder, api: FragmentAPI) -> StarsOrder:
     return order
 
 
-async def check_usernames(orders: list[StarsOrder], storage: Storage, provider: AutostarsProvider):
+async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider):
     checked: dict[StarsOrderStatus, list[StarsOrder]] = defaultdict(list)
+    storage = provider.storage
 
     to_check: list[StarsOrder] = []
     for order in orders:
@@ -128,24 +127,12 @@ async def on_username_not_found(
     lambda events_stack, hub: len(events_stack.events) > 1 and hub.funpay.authenticated,
     handler_id='Save telegram stars orders',
 )
-async def sale_orders(
-    events_stack: EventsStack,
-    hub: FPH,
-    autostars_storage: Storage,
-    autostars_provider: AutostarsProvider,
-) -> None:
-    stars_orders = await extract_stars_orders(events_stack.events, hub.instance_id)
-    if not stars_orders:
-        logger.debug(
-            _ru('Нет событий о продаже связанных с Telegram stars. Events pack: %s.'),
-            events_stack.id,
-        )
+async def sale_orders(events_stack: EventsStack, hub: FPH, autostars_provider: AutostarsProvider) -> None:
+    orders = await extract_stars_orders(events_stack.events, hub.instance_id)
+    if not orders:
         return
 
-    logger.info(
-        _ru('Добавляю данные о заказах %s в базу данных.'),
-        [i.order_id for i in stars_orders],
-    )
+    logger.info(_ru('Добавляю данные о заказах %s в базу данных.'), [i.order_id for i in orders])
 
-    await autostars_storage.add_or_update_orders(*stars_orders)
-    asyncio.create_task(check_usernames(stars_orders, autostars_storage, autostars_provider))
+    await autostars_provider.storage.add_or_update_orders(*orders)
+    asyncio.create_task(check_usernames(orders, autostars_provider))

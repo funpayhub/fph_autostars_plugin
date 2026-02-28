@@ -6,18 +6,25 @@ from autostars.src.ton import Wallet
 
 if TYPE_CHECKING:
     from autostars.src.tonapi import TonAPI
+    from autostars.src.storage import Storage,
 
 
 class AutostarsProvider:
     def __init__(
         self,
         tonapi: TonAPI,
+        storage: Storage,
         fragmentapi: FragmentAPI | None = None,
         wallet: Wallet | None = None,
     ):
+        self._storage = storage
         self._tonapi = tonapi
         self._fragmentapi = fragmentapi
         self._wallet = wallet
+
+    @property
+    def storage(self) -> Storage:
+        return self._storage
 
     @property
     def tonapi(self) -> TonAPI:
