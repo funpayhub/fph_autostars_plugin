@@ -1,13 +1,17 @@
+from __future__ import annotations
+
+
 __all__ = [
     'TonAPIResponse',
     'Seqno',
     'Transaction',
-    'Wallet'
+    'Wallet',
 ]
 
 
-from pydantic import BaseModel, Field
 from typing import Any
+
+from pydantic import Field, BaseModel
 
 
 class TonAPIResponse(BaseModel):
@@ -31,4 +35,3 @@ class Wallet(TonAPIResponse):
     address: str
     is_wallet: bool
     balance: int
-

@@ -1,23 +1,24 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING
-
-from funpayhub.lib.translater import _ru
+from logging import getLogger
 
 from autostars.src.ton import Wallet
 from autostars.src.storage import Storage
 from autostars.src.ton.wallet import Transfer
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
-from logging import getLogger
+
+from funpayhub.lib.translater import _ru
+
 from .fragment_api.types import BuyStarsLink
 
 
 if TYPE_CHECKING:
-    from funpayhub.app.main import FunPayHub as FPH
-    from autostars.src.autostars_provider import AutostarsProvider
     from autostars.src.types import StarsOrder
+    from autostars.src.autostars_provider import AutostarsProvider
+
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 logger = getLogger('funpayhub.com_github_qvvonk_funpayhub_autostars_plugin')

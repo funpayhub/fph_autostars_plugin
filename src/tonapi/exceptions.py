@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from autostars.src.exceptions import AutostarsPluginException
+
 from funpayhub.lib.translater import _ru
 
 
@@ -23,7 +24,7 @@ class TonAPIUnexpectedStatus(TonAPISessionError):
             _ru('Произошла ошибка при запросе %s. Статус: %s. Ошиюка %s'),
             method_path,
             status,
-            error
+            error,
         )
         self.method_path = method_path
         self.error = error

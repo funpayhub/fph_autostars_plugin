@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __all__ = [
     'TonAPIMethod',
     'SendMessage',
@@ -9,10 +10,11 @@ __all__ = [
 ]
 
 
-from typing import ClassVar, Self, Literal
+from typing import Self, Literal, ClassVar
 from abc import ABC
-from pydantic import BaseModel
 from collections.abc import Callable
+
+from pydantic import BaseModel
 
 from .types import Seqno, Wallet, Transaction
 
@@ -64,4 +66,3 @@ class GetTransactionByMessageHash(TonAPIMethod):
     path = _get_transaction_by_message_hash_path
     method = 'GET'
     return_type = Transaction
-

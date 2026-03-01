@@ -5,7 +5,11 @@ from json import JSONDecodeError
 
 from aiohttp import TCPConnector, ClientSession, ClientResponseError
 from pydantic import ValidationError
-from autostars.src.exceptions import FragmentParsingError, FragmentUnexpectedStatus, FragmentResponseError
+from autostars.src.exceptions import (
+    FragmentParsingError,
+    FragmentResponseError,
+    FragmentUnexpectedStatus,
+)
 
 
 if TYPE_CHECKING:

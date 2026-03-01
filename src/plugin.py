@@ -5,9 +5,10 @@ import logging
 import traceback
 from typing import TYPE_CHECKING
 
-from aiogram.methods import SendDocument
-from aiogram.types import BufferedInputFile
 from pytoniq import LiteClient
+from aiogram.types import BufferedInputFile
+from aiogram.methods import SendDocument
+from autostars.src.autostars_provider import AutostarsProvider
 
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.properties import ListParameter
@@ -18,18 +19,19 @@ from funpayhub.app.plugin import Plugin
 from funpayhub.app.formatters import GeneralFormattersCategory
 
 from .fph import router as fph_router
+from .ton import Wallet
 from .other import NotificationChannels
 from .funpay import funpay_router
+from .tonapi import TonAPI
 from .storage import Sqlite3Storage
 from .telegram import ROUTERS
 from .formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
-from autostars.src.autostars_provider import AutostarsProvider
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI
-from .ton import Wallet
-from .tonapi import TonAPI
 from .transferer_service import TransferrerService
+
+
 # from .telegram.middlewares import CryMiddleware
 
 
@@ -141,7 +143,8 @@ class AutostarsPlugin(Plugin):
             for i in range(3):
                 try:
                     self.provider._wallet = await Wallet.from_mnemonics(
-                        self.props.wallet.mnemonics.value, self.provider
+                        self.props.wallet.mnemonics.value,
+                        self.provider,
                     )
                     self.logger.info(_ru('Кошелек %s подключен.'), self.provider.wallet.address)
                     self.hub.telegram.send_notification(
@@ -215,8 +218,8 @@ class AutostarsPlugin(Plugin):
                 ),
                 document=BufferedInputFile(
                     error_file.encode(),
-                    filename='autostars_service_crash_traceback.txt'
-                )
+                    filename='autostars_service_crash_traceback.txt',
+                ),
             )
             self.hub.telegram.send_notification_from_obj(NotificationChannels.ERROR, call)
 

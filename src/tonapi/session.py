@@ -1,10 +1,14 @@
-from aiohttp import ClientSession, TCPConnector, ClientResponseError
-from json import JSONDecodeError
-from pydantic import ValidationError, BaseModel
-from .methods import TonAPIMethod
-from .exceptions import TonAPIError, TonAPIParsingError, TonAPIUnexpectedStatus
+from __future__ import annotations
+
 import time
 import asyncio
+from json import JSONDecodeError
+
+from aiohttp import TCPConnector, ClientSession, ClientResponseError
+from pydantic import BaseModel, ValidationError
+
+from .methods import TonAPIMethod
+from .exceptions import TonAPIError, TonAPIParsingError, TonAPIUnexpectedStatus
 
 
 class Session:
@@ -44,7 +48,9 @@ class Session:
         session = await self.session()
         data = method.model_dump_json(by_alias=True)
         path = method.get_path()
-        call = session.get(url=path) if method.method == 'GET' else session.post(url=path, data=data)
+        call = (
+            session.get(url=path) if method.method == 'GET' else session.post(url=path, data=data)
+        )
         print(path, data, sep='\n')
         async with call as r:
             self._last_request_ts = time.monotonic()
@@ -69,8 +75,7 @@ class Session:
                 if method.return_type is not None:
                     if issubclass(method.return_type, BaseModel):
                         return method.return_type.model_validate(parsed)
-                    else:
-                        return method.return_type(parsed)
+                    return method.return_type(parsed)
             except ValidationError as e:
                 raise TonAPIParsingError(method_path=path) from e
 
@@ -80,4 +85,6 @@ class Session:
         except TonAPIError:
             raise
         except Exception as e:
-            raise TonAPIError('Произошла ошибка при выполнении запроса %s', method.get_path()) from e
+            raise TonAPIError(
+                'Произошла ошибка при выполнении запроса %s', method.get_path()
+            ) from e

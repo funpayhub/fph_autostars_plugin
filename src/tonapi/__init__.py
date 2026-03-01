@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+
 __all__ = ['TonAPI']
 
 from typing import TYPE_CHECKING
-from .session import Session
+
 from .methods import GetSeqno, GetWallet, SendMessage, GetTransactionByMessageHash
+from .session import Session
 
 
 if TYPE_CHECKING:

@@ -5,13 +5,12 @@ import asyncio
 from typing import TYPE_CHECKING, Self
 from dataclasses import dataclass
 
-
-from pytoniq import Address, WalletV5R1, Cell
-from pytoniq.contract.wallets.wallet_v5 import WALLET_V5_R1_CODE
-from pytoniq_core import WalletMessage, StateInit, MessageAny
-from pytoniq import WalletV5R1
-from pytoniq_core.crypto.keys import mnemonic_to_private_key, mnemonic_is_valid
+from pytoniq import Cell, Address, WalletV5R1
+from pytoniq_core import StateInit, MessageAny, WalletMessage
+from pytoniq_core.crypto.keys import mnemonic_is_valid, mnemonic_to_private_key
 from autostars.src.tonapi.types import Wallet as TonAPIWallet
+from pytoniq.contract.wallets.wallet_v5 import WALLET_V5_R1_CODE
+
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
@@ -50,14 +49,14 @@ class OfflineV5R1Wallet:
         return WalletV5R1.create_wallet_internal_message(
             destination=Address(destination),
             value=amount,
-            body=body
+            body=body,
         )
 
     def create_transfer_message(
         self,
         seqno: int,
         messages: list[WalletMessage],
-        valid_until: int
+        valid_until: int,
     ) -> Cell:
         return WalletV5R1.raw_create_transfer_msg(
             WalletV5R1,
@@ -74,7 +73,7 @@ class OfflineV5R1Wallet:
     def create_external_transfer_message(
         self,
         seqno: int,
-        *transfers: Transfer
+        *transfers: Transfer,
     ) -> tuple[str, str]:
         """
         Создает external transfer message.
@@ -85,14 +84,14 @@ class OfflineV5R1Wallet:
             self.create_internal_message(
                 destination=i.address,
                 amount=i.amount,
-                body=i.payload
+                body=i.payload,
             )
             for i in transfers
         ]
         tr_message = self.create_transfer_message(
             seqno,
             messages,
-            max(transfers, key=lambda i: i.valid_until).valid_until
+            max(transfers, key=lambda i: i.valid_until).valid_until,
         )
         ext = self.create_external_message(tr_message).serialize()
         return ext.to_boc().hex(), ext.hash.hex()
@@ -141,7 +140,7 @@ class Wallet:
     async def get_balance(self) -> int:
         return (await self.provider.tonapi.get_wallet(self.address)).balance
 
-    async def transfer(self, *transfers: Transfer, seqno: int | None = None,) -> tuple[str, str]:
+    async def transfer(self, *transfers: Transfer, seqno: int | None = None) -> tuple[str, str]:
         if seqno is None:
             seqno = (await self.provider.tonapi.get_seqno(self.address)).seqno
 
@@ -149,5 +148,4 @@ class Wallet:
         await self.provider.tonapi.send_message(boc=msg[0])
         return msg
 
-    async def wait_for_transfer(self, msg_hash: str, valid_until: int) -> str:
-        ...
+    async def wait_for_transfer(self, msg_hash: str, valid_until: int) -> str: ...
