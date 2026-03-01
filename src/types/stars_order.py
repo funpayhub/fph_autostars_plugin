@@ -38,7 +38,7 @@ class StarsOrder(BaseModel):
     in_msg_hash: str | None = None
     transaction_hash: str | None = None
     hub_instance: str
-    status: StarsOrderStatus = StarsOrderStatus.UNPR OCESSED
+    status: StarsOrderStatus = StarsOrderStatus.UNPROCESSED
     error: ErrorTypes | None = None
     retries_left: int = 3
     _sale_event: NewSaleEvent | None = PrivateAttr(default=None)
