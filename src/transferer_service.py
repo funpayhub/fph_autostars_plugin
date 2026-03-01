@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING
-from logging import getLogger
 
 from autostars.src.ton import Wallet
-from autostars.src.storage import Storage
 from autostars.src.ton.wallet import Transfer
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
+from autostars.src.logger import logger
 
 from funpayhub.lib.translater import _ru
+
 
 from .fragment_api.types import BuyStarsLink
 
@@ -17,23 +17,16 @@ from .fragment_api.types import BuyStarsLink
 if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
     from autostars.src.autostars_provider import AutostarsProvider
-
     from funpayhub.app.main import FunPayHub as FPH
-
-
-logger = getLogger('funpayhub.com_github_qvvonk_funpayhub_autostars_plugin')
+    from autostars.src.callbacks import Callbacks
 
 
 class TransferrerService:
-    def __init__(self, hub: FPH, storage: Storage, provider: AutostarsProvider):
-        self._storage = storage
+    def __init__(self, provider: AutostarsProvider, callbacks: Callbacks):
         self._provider = provider
-        self._hub = hub
+        self._hub = callbacks.hub
         self._loop_stopped = False
-
-        self._on_success_callback = None
-        self._on_error_callback = None
-        self._payload_gen = None
+        self._callbacks = callbacks
 
         self._stop = asyncio.Event()
         self._stopped = asyncio.Event()
@@ -59,7 +52,7 @@ class TransferrerService:
             fragment_api = self.provider.fragmentapi
             wallet = self.provider.wallet
 
-            orders = await self.storage.get_ready_orders(instance_id=self.hub.instance_id)
+            orders = await self.provider.storage.get_ready_orders(instance_id=self.hub.instance_id)
             if not orders:
                 logger.debug(_ru('Нет готовых для перевода заказов.'))
                 continue
@@ -75,15 +68,14 @@ class TransferrerService:
                     i.status = StarsOrderStatus.ERROR
                     i.error = error
                     i.retries_left = 0
-                await self.storage.add_or_update_orders(*orders.values())
-                if self._on_error_callback:
-                    asyncio.create_task(self._on_error_callback(*orders.values()))
+                await self.provider.storage.add_or_update_orders(*orders.values())
+                asyncio.create_task(self.callbacks.on_transactions_error(*orders.values()))
                 continue
 
             for i in orders.values():
                 i.status = StarsOrderStatus.TRANSFERRING
                 i.retries_left -= 1
-            await self.storage.add_or_update_orders(*orders.values())
+            await self.provider.storage.add_or_update_orders(*orders.values())
             await self.transfer(wallet, *orders.values())
 
     async def transfer(self, wallet: Wallet, *orders: StarsOrder) -> None:
@@ -92,7 +84,7 @@ class TransferrerService:
         for i in orders:
             try:
                 stars_link = await self.get_stars_link(i.recipient_id, i.stars_amount)
-                payload = await self.generate_payload(
+                payload = await self.callbacks.generate_payload_text(
                     i,
                     stars_link.transaction.messages[0].clear_payload,
                 )
@@ -113,13 +105,13 @@ class TransferrerService:
                 i.status = StarsOrderStatus.ERROR
                 i.error = ErrorTypes.UNKNOWN
                 errored.append(i)
-                await self.storage.add_or_update_order(i)
+                await self.provider.storage.add_or_update_order(i)
                 continue
 
         if errored:
             to_execute = [i for i in errored if i.retries_left <= 0]
             if to_execute:
-                asyncio.create_task(self._on_error_callback(*to_execute))
+                asyncio.create_task(self.callbacks.on_transactions_error(*to_execute))
 
         if not orders_to_transfer:
             return
@@ -135,9 +127,8 @@ class TransferrerService:
             for i in orders_to_transfer:
                 i.status = StarsOrderStatus.ERROR
                 i.error = ErrorTypes.UNKNOWN
-            await self.storage.add_or_update_orders(*orders_to_transfer)
-            if self._on_error_callback:
-                asyncio.create_task(self._on_error_callback(*orders_to_transfer))
+            await self.provider.storage.add_or_update_orders(*orders_to_transfer)
+            asyncio.create_task(self.callbacks.on_transactions_error(*orders_to_transfer))
             return
 
         logger.info(
@@ -148,19 +139,8 @@ class TransferrerService:
         for i in orders_to_transfer:
             i.status = StarsOrderStatus.DONE
             i.transaction_hash = hash
-        await self.storage.add_or_update_orders(*orders_to_transfer)
-        if self._on_success_callback:
-            asyncio.create_task(self._on_success_callback(*orders_to_transfer))
-
-    async def generate_payload(self, order: StarsOrder, ref: str) -> str:
-        if self._payload_gen is None:
-            return ref
-
-        try:
-            r = await self._payload_gen(order, ref)
-        except Exception:  # todo: log
-            return ref
-        return r or ref
+        await self.provider.storage.add_or_update_orders(*orders_to_transfer)
+        asyncio.create_task(self.callbacks.on_successful_transaction(*orders_to_transfer))
 
     async def get_stars_link(self, recipient_id: str | None, amount: int) -> BuyStarsLink:
         init_link = await self.provider.fragmentapi.init_buy_stars_request(
@@ -175,13 +155,13 @@ class TransferrerService:
         await self._stopped.wait()
 
     @property
-    def storage(self) -> Storage:
-        return self._storage
-
-    @property
     def provider(self) -> AutostarsProvider:
         return self._provider
 
     @property
     def hub(self) -> FPH:
         return self._hub
+
+    @property
+    def callbacks(self) -> Callbacks:
+        return self._callbacks

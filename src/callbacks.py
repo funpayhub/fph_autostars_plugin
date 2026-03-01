@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+
+__all__ = ['Callbacks']
+
+
 import asyncio
 from typing import TYPE_CHECKING
 from autostars.src.plugin import AutostarsPlugin

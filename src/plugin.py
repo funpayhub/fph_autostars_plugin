@@ -28,6 +28,7 @@ from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI
 from .transferer_service import TransferrerService
 from .autostars_provider import AutostarsProvider
+from .callbacks import Callbacks
 
 
 if TYPE_CHECKING:
@@ -46,8 +47,8 @@ class AutostarsPlugin(Plugin):
         super().__init__(*args)
 
         self.api = TonAPI()
-        self.provider = AutostarsProvider(self.api)
-        self.storage = None
+        self.provider = None
+        self.callbacks = Callbacks(self)
 
         self.props: AutostarsProperties | None = None
         self.transfer_service: TransferrerService | None = None
@@ -111,7 +112,9 @@ class AutostarsPlugin(Plugin):
         logger = logging.getLogger(LiteClient.__name__)
         logger.setLevel(logging.WARNING)
 
-        self.storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
+        storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
+        self.provider = AutostarsProvider(TonAPI(), storage)
+
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:
             self.logger.info(_ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
             self.provider._fragmentapi = FragmentAPI(
@@ -156,29 +159,18 @@ class AutostarsPlugin(Plugin):
                     ),
                 )
 
-        self.transfer_service = TransferrerService(
-            self.hub,
-            self.storage,
-            self.logger,
-        )
-
-        self.transfer_service._on_success_callback = self.on_successful_transfer
-        self.transfer_service._on_error_callback = self.on_transfer_error
-        self.transfer_service._payload_gen = self.generate_payload_text
+        self.transfer_service = TransferrerService(self.hub, self.provider, self.callbacks)
 
         self.hub.workflow_data.update(
             {
                 'autostars_provider': self.provider,
-                'autostars_storage': self.storage,
+                'autostars_storage': self.provider.storage,
                 'autostars_service': self.transfer_service,
             },
         )
         task = asyncio.create_task(self.transfer_service.main_loop())
         task.add_done_callback(self.service_done_callback)
 
-    # ------------------------------------------
-    # ---------------- Callbacks ---------------
-    # ------------------------------------------
     def service_done_callback(self, task: asyncio.Task) -> None:
         try:
             task.result()
