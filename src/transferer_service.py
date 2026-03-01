@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import TYPE_CHECKING
 
 from autostars.src.ton import Wallet
@@ -72,9 +73,6 @@ class TransferrerService:
                 asyncio.create_task(self.callbacks.on_transactions_error(*orders.values()))
                 continue
 
-            for i in orders.values():
-                i.status = StarsOrderStatus.TRANSFERRING
-                i.retries_left -= 1
             await self.provider.storage.add_or_update_orders(*orders.values())
             await self.transfer(wallet, *orders.values())
 
@@ -109,15 +107,19 @@ class TransferrerService:
                 continue
 
         if errored:
-            to_execute = [i for i in errored if i.retries_left <= 0]
-            if to_execute:
-                asyncio.create_task(self.callbacks.on_transactions_error(*to_execute))
+            asyncio.create_task(self.callbacks.on_transactions_error(*errored))
 
         if not orders_to_transfer:
             return
 
+        boc, in_hash = await wallet.create_external_transfer_message(*orders_to_transfer.values())
+        for i in orders_to_transfer:
+            i.in_msg_hash = in_hash
+            i.status = StarsOrderStatus.TRANSFERRING
+        await self.provider.storage.add_or_update_orders(*orders_to_transfer)
+
         try:
-            hash = await wallet.transfer(*orders_to_transfer.values())
+            await self.provider.tonapi.send_message(boc)
         except Exception:  # todo: recreate wallet if timeout; check -13 code
             logger.error(
                 'Не удалось выполнить перевод TON для заказов %s.',
@@ -128,17 +130,26 @@ class TransferrerService:
                 i.status = StarsOrderStatus.ERROR
                 i.error = ErrorTypes.UNKNOWN
             await self.provider.storage.add_or_update_orders(*orders_to_transfer)
-            asyncio.create_task(self.callbacks.on_transactions_error(*orders_to_transfer))
+            return
+
+        try:
+            tr = await self.provider.wallet.wait_for_transfer(in_hash, int(time.time() + 60))
+        except TimeoutError:
+            logger.error('Таймаут ожидания транзакции с in_msg_hash=%s.', in_hash)
+            for i in orders_to_transfer:
+                i.status = StarsOrderStatus.ERROR
+                i.error = ErrorTypes.UNKNOWN
+            await self.provider.storage.add_or_update_orders(*orders_to_transfer)
             return
 
         logger.info(
             'Успешно перевел TON для заказов %s. Хэш транзакции: %s.',
             [i.order_id for i in orders_to_transfer],
-            hash,
+            tr.hash,
         )
         for i in orders_to_transfer:
             i.status = StarsOrderStatus.DONE
-            i.transaction_hash = hash
+            i.transaction_hash = tr.hash
         await self.provider.storage.add_or_update_orders(*orders_to_transfer)
         asyncio.create_task(self.callbacks.on_successful_transaction(*orders_to_transfer))
 

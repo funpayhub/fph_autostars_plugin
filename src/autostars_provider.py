@@ -6,7 +6,7 @@ from autostars.src.ton import Wallet
 
 if TYPE_CHECKING:
     from autostars.src.tonapi import TonAPI
-    from autostars.src.storage import Storage,
+    from autostars.src.storage import Storage
 
 
 class AutostarsProvider:

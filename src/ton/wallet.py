@@ -10,7 +10,7 @@ from pytoniq_core import StateInit, MessageAny, WalletMessage
 from pytoniq_core.crypto.keys import mnemonic_is_valid, mnemonic_to_private_key
 from autostars.src.tonapi.types import Wallet as TonAPIWallet
 from pytoniq.contract.wallets.wallet_v5 import WALLET_V5_R1_CODE
-
+from autostars.src.tonapi.types import Transaction
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
@@ -140,12 +140,25 @@ class Wallet:
     async def get_balance(self) -> int:
         return (await self.provider.tonapi.get_wallet(self.address)).balance
 
-    async def transfer(self, *transfers: Transfer, seqno: int | None = None) -> tuple[str, str]:
+    async def create_external_transfer_message(
+        self,
+        *transfers: Transfer,
+        seqno: int | None = None
+    ) -> tuple[str, str]:
         if seqno is None:
             seqno = (await self.provider.tonapi.get_seqno(self.address)).seqno
 
         msg = self.offline_wallet.create_external_transfer_message(seqno, *transfers)
-        await self.provider.tonapi.send_message(boc=msg[0])
         return msg
 
-    async def wait_for_transfer(self, msg_hash: str, valid_until: int) -> str: ...
+    async def wait_for_transfer(self, msg_hash: str, valid_until: int) -> Transaction:
+        valid_until += 60
+        while True:
+            request_time = time.time()
+            try:
+                return await self.provider.tonapi.get_transaction_by_msg_hash(msg_hash)
+            except Exception: # todo: log unexpected exceptions
+                pass
+
+            if request_time > valid_until:
+                raise TimeoutError('Timeout waiting for transfer.')

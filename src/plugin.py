@@ -124,32 +124,25 @@ class AutostarsPlugin(Plugin):
 
         if self.props.wallet.mnemonics.value:
             self.logger.info(_ru('Мнемоники найдены в настройках. Создаю кошелек.'))
-            for i in range(3):
-                try:
-                    self.provider._wallet = await Wallet.from_mnemonics(
-                        self.props.wallet.mnemonics.value,
-                        self.provider,
-                    )
-                    self.logger.info(_ru('Кошелек %s подключен.'), self.provider.wallet.address)
-                    self.hub.telegram.send_notification(
-                        NotificationChannels.INFO,
-                        self.hub.translater.translate(
-                            '<b>✅ TON кошелек <code>{address}</code> подключен.\n\n'
-                            '💰Баланс: <code>{balance}</code> TON</b>',
-                        ).format(
-                            address=self.provider.wallet.address,
-                            balance=self.provider.wallet._last_info.balance / 1_000_000_000,
-                        ),
-                    )
-                    break
-                except Exception:
-                    self.logger.error(
-                        _ru('Произошла ошибка при подключении к кошельку. Попытка: %d/3.'),
-                        i + 1,
-                        exc_info=True,
-                    )
-                    await asyncio.sleep(2)
-            else:
+            try:
+                self.provider._wallet = await Wallet.from_mnemonics(
+                    self.props.wallet.mnemonics.value,
+                    self.provider,
+                )
+                self.logger.info(_ru('Кошелек %s подключен.'), self.provider.wallet.address)
+                self.hub.telegram.send_notification(
+                    NotificationChannels.INFO,
+                    self.hub.translater.translate(
+                        '<b>✅ TON кошелек <code>{address}</code> подключен.\n\n'
+                        '💰Баланс: <code>{balance}</code> TON</b>',
+                    ).format(
+                        address=self.provider.wallet.address,
+                        balance=self.provider.wallet._last_info.balance / 1_000_000_000,
+                    ),
+                )
+
+            except Exception:
+                self.logger.error(_ru('Ошибка подключения к TON кошельку.'), exc_info=True)
                 self.hub.telegram.send_notification(
                     NotificationChannels.ERROR,
                     self.hub.translater.translate(
@@ -159,7 +152,7 @@ class AutostarsPlugin(Plugin):
                     ),
                 )
 
-        self.transfer_service = TransferrerService(self.hub, self.provider, self.callbacks)
+        self.transfer_service = TransferrerService(self.provider, self.callbacks)
 
         self.hub.workflow_data.update(
             {
