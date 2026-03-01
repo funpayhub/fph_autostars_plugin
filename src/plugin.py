@@ -8,15 +8,12 @@ from typing import TYPE_CHECKING
 from pytoniq import LiteClient
 from aiogram.types import BufferedInputFile
 from aiogram.methods import SendDocument
-from autostars.src.autostars_provider import AutostarsProvider
 
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.properties import ListParameter
 from funpayhub.lib.translater import _ru
-from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.plugin import Plugin
-from funpayhub.app.formatters import GeneralFormattersCategory
 
 from .fph import router as fph_router
 from .ton import Wallet
@@ -25,14 +22,12 @@ from .funpay import funpay_router
 from .tonapi import TonAPI
 from .storage import Sqlite3Storage
 from .telegram import ROUTERS
-from .formatters import StarsOrderCategory, StarsOrderFormatter, StarsOrderFormatterContext
+from .formatters import StarsOrderCategory, StarsOrderFormatter
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI
 from .transferer_service import TransferrerService
-
-
-# from .telegram.middlewares import CryMiddleware
+from .autostars_provider import AutostarsProvider
 
 
 if TYPE_CHECKING:
@@ -44,16 +39,6 @@ if TYPE_CHECKING:
     from funpayhub.lib.hub.text_formatters import Formatter
 
     from funpayhub.app.dispatching import Router as HubRouter
-
-    from .types import StarsOrder
-
-
-AD_TEXT = (
-    '✨ Звезды переведены автоматически плагином AutoStars для бесплатного бота FunPay Hub.  \n\n'
-    '💻 GitHub: https://github.com/funpayhub/funpayhub \n'
-    '💻 Plugin GitHub: https://github.com/funpayhub/fph_autostars_plugin \n'
-    '✈️ Telegram: https://t.me/funpay_hub'
-)
 
 
 class AutostarsPlugin(Plugin):
@@ -90,10 +75,6 @@ class AutostarsPlugin(Plugin):
 
     async def telegram_routers(self) -> TGRouter | list[TGRouter]:
         return ROUTERS
-
-    # async def setup_telegram_routers(self) -> None:
-    #     mdlwr = CryMiddleware(self.props)
-    #     self.hub.telegram.dispatcher.callback_query.outer_middleware(mdlwr)
 
     async def funpay_routers(self) -> FPRouter | list[FPRouter]:
         return funpay_router
@@ -222,135 +203,3 @@ class AutostarsPlugin(Plugin):
                 ),
             )
             self.hub.telegram.send_notification_from_obj(NotificationChannels.ERROR, call)
-
-    async def generate_payload_text(self, order: StarsOrder, ref: str) -> str:
-        text = self.props.messages.payload_message.value
-        ad = self.props.messages.show_ad.value
-        if not text:
-            return ref if not ad else AD_TEXT + f'\n\n{ref}'
-
-        ctx = StarsOrderFormatterContext(
-            new_message_event=order.sale_event.related_new_message_event,
-            order_event=order.sale_event,
-            goods_to_deliver=[],
-            stars_order=order,
-        )
-
-        try:
-            pack = await self.hub.funpay.text_formatters.format_text(
-                text=text,
-                context=ctx,
-                query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
-            )
-        except Exception:
-            self.logger.error(
-                _ru('Не удалось форматировать комментарий к транзакции.'),
-                exc_info=True,
-            )
-            return ref if not ad else AD_TEXT + f'\n\n{ref}'
-
-        total_text = ''.join(i for i in pack.entries if isinstance(i, str))
-        if ad:
-            total_text += f'\n\n{AD_TEXT}'
-
-        if total_text:
-            total_text += f'\n\n{ref}'
-        else:
-            total_text = ref
-        return total_text
-
-    async def on_transfer_error(self, *orders: StarsOrder) -> None:
-        await asyncio.gather(*(self._on_transfer_error(i) for i in orders))
-        message_text = self.hub.translater.translate(
-            '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>',
-        ).format(
-            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
-        )
-        self.hub.telegram.send_notification(
-            NotificationChannels.ERROR,
-            message_text,
-        )
-
-    async def _on_transfer_error(self, order: StarsOrder) -> None:
-        message = self.props.messages.transaction_failed_message.value
-        if not message:
-            return
-
-        ctx = StarsOrderFormatterContext(
-            new_message_event=order.sale_event.related_new_message_event,
-            order_event=order.sale_event,
-            goods_to_deliver=[],
-            stars_order=order,
-        )
-
-        try:
-            pack = await self.hub.funpay.text_formatters.format_text(
-                text=message,
-                context=ctx,
-                query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
-            )
-        except Exception:
-            self.logger.error(
-                _ru('Не удалось форматировать сообщение об ошибка перевода звёзд.'),
-                exc_info=True,
-            )
-            return
-
-        try:
-            await self.hub.funpay.send_messages_stack(pack, order.funpay_chat_id)
-        except Exception:
-            self.logger.error(
-                _ru('Не удалось отправить сообщение об ошибке перевода звёзд.'),
-                exc_info=True,
-            )
-
-    async def on_successful_transfer(self, *orders: StarsOrder) -> None:
-        await asyncio.gather(*(self._on_successful_transfer(i) for i in orders))
-        message_text = self.hub.translater.translate(
-            '<b>✅ Транзакции по заказам {order_ids} успешно выполнены.</b>',
-        ).format(
-            order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
-        )
-        self.hub.telegram.send_notification(
-            NotificationChannels.INFO,
-            message_text,
-        )
-
-    async def _on_successful_transfer(self, order: StarsOrder) -> None:
-        message = self.props.messages.transaction_completed_message.value
-        if not message:
-            return
-
-        ctx = StarsOrderFormatterContext(
-            new_message_event=order.sale_event.related_new_message_event,
-            order_event=order.sale_event,
-            goods_to_deliver=[],
-            stars_order=order,
-        )
-
-        try:
-            pack = await self.hub.funpay.text_formatters.format_text(
-                text=message,
-                context=ctx,
-                query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
-            )
-        except Exception:
-            self.logger.error(
-                _ru('Не удалось форматировать сообщение об успешном переводе звёзд.'),
-                exc_info=True,
-            )
-            return
-
-        try:
-            await self.hub.funpay.send_messages_stack(pack, order.funpay_chat_id)
-        except Exception:
-            self.logger.error(
-                _ru('Не удалось отправить сообщение об успешном переводе звёзд.'),
-                exc_info=True,
-            )
-
-    @property
-    def ready(self) -> bool:
-        return (
-            self.fragment_api_provider.api is not None and self.wallet_provider.wallet is not None
-        )
