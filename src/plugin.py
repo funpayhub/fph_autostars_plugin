@@ -25,6 +25,7 @@ from .telegram import ROUTERS
 from .formatters import StarsOrderCategory, FORMATTERS
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
+from .telegram.ui.modifications import MODIFICATIONS
 from .fragment_api import FragmentAPI
 from .transferer_service import TransferrerService
 from .autostars_provider import AutostarsProvider
@@ -36,7 +37,7 @@ if TYPE_CHECKING:
     from funpaybotengine import Router as FPRouter
 
     from funpayhub.lib.properties import Properties
-    from funpayhub.lib.telegram.ui import MenuBuilder
+    from funpayhub.lib.telegram.ui import MenuBuilder, MenuModification
     from funpayhub.lib.hub.text_formatters import Formatter
 
     from funpayhub.app.dispatching import Router as HubRouter
@@ -107,6 +108,11 @@ class AutostarsPlugin(Plugin):
 
     async def menus(self) -> type[MenuBuilder] | list[type[MenuBuilder]]:
         return BUILDERS
+
+    async def menu_modifications(
+        self,
+    ) -> dict[str, type[MenuModification] | list[type[MenuModification]]]:
+        return MODIFICATIONS
 
     async def post_setup(self) -> None:
         logger = logging.getLogger(LiteClient.__name__)
