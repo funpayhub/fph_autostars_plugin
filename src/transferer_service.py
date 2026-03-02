@@ -118,6 +118,19 @@ class TransferrerService:
         if not ready_orders:
             return
 
+        ready_orders = await self.get_transferable_orders(ready_orders, wallet)
+        not_enough_ton_orders = {k: v for k, v in ready_orders.items() if v not in ready_orders}
+
+        if not_enough_ton_orders:
+            for i in not_enough_ton_orders:
+                i.status = StarsOrderStatus.ERROR
+                i.error = ErrorTypes.NOT_ENOUGH_TON
+                i.retries_left = 0
+            await self.provider.storage.add_or_update_orders(*not_enough_ton_orders)
+
+        if not ready_orders:
+            return
+
         boc, in_hash = await wallet.create_external_transfer_message(*ready_orders.values())
         for i in ready_orders:
             i.in_msg_hash, i.status = in_hash, StarsOrderStatus.TRANSFERRING
@@ -145,6 +158,23 @@ class TransferrerService:
         for i in ready_orders:
             i.status, i.transaction_hash = StarsOrderStatus.DONE, tr.hash
         await self.provider.storage.add_or_update_orders(*ready_orders)
+
+    async def get_transferable_orders(
+        self,
+        orders_dict: dict[StarsOrder, Transfer],
+        wallet: Wallet
+    ) -> dict[StarsOrder, Transfer]:
+        orders = sorted(orders_dict.items(), key=lambda x: x[1].amount)
+        balance = await wallet.get_balance() - int(0.1) * 1_000_000_000
+        transferable_orders: dict[StarsOrder, Transfer] = {}
+        total = 0
+        for order, transfer in orders:
+            if total + transfer.amount > balance:
+                break
+            total += transfer.amount
+            transferable_orders[order] = transfer
+
+        return transferable_orders
 
     async def stop(self) -> None:
         if not self._stop.is_set():
