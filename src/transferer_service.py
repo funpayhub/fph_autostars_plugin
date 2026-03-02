@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import TYPE_CHECKING
+from wsgiref.util import request_uri
 
 from autostars.src.ton import Wallet
 from autostars.src.ton.wallet import Transfer
@@ -92,7 +93,11 @@ class TransferrerService:
         ready_orders: dict[StarsOrder, Transfer] = {}
         for i in orders:
             try:
-                link = await self.get_stars_link(i.recipient_id, i.stars_amount)
+                request = await self.provider.fragmentapi.init_buy_stars_request(
+                    recipient=i.recipient_id,
+                    quantity=i.stars_amount,
+                )
+                link = await self.provider.fragmentapi.get_buy_stars_link(request.request_id)
             except Exception:
                 logger.error('Ошибка получения ссылки по заказу %s.', i.order_id, exc_info=True)
                 i.status = StarsOrderStatus.ERROR
@@ -108,6 +113,8 @@ class TransferrerService:
                 valid_until=link.transaction.valid_until,
             )
             ready_orders[i] = transfer
+            i.ref = link.transaction.messages[0].clear_payload
+            i.fragment_request_id = request.request_id
 
         if not ready_orders:
             return
@@ -135,13 +142,6 @@ class TransferrerService:
         logger.info('Перевел по заказам %s. Хэш: %s.', [i.order_id for i in ready_orders], tr.hash)
         for i in ready_orders: i.status, i.transaction_hash = StarsOrderStatus.DONE, tr.hash
         await self.provider.storage.add_or_update_orders(*ready_orders)
-
-    async def get_stars_link(self, recipient_id: str | None, amount: int) -> BuyStarsLink:
-        init_link = await self.provider.fragmentapi.init_buy_stars_request(
-            recipient=recipient_id,
-            quantity=amount,
-        )
-        return await self.provider.fragmentapi.get_buy_stars_link(init_link.request_id)
 
     async def stop(self) -> None:
         if not self._stop.is_set():

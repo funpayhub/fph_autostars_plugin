@@ -176,7 +176,7 @@ class AutostarsRefFormatter(
         super().__init__(context, *args)
 
     def format(self) -> str:
-        return self.context.stars_order.recipient_id or ''
+        return self.context.stars_order.ref or ''
 
 
 class StarsOrderCategory(FormatterCategory):

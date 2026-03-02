@@ -33,6 +33,7 @@ class StarsOrder(BaseModel):
     telegram_username: str | None
     recipient_id: str | None = None
     fragment_request_id: str | None = None
+    ref: str | None = None
     in_msg_hash: str | None = None
     transaction_hash: str | None = None
     hub_instance: str

@@ -11,8 +11,11 @@ from pathlib import Path
 import aiosqlite
 from aiosqlite import Cursor, Connection
 
-from ..types import StarsOrder
-from ..types.enums import StarsOrderStatus
+from autostars.src.types import StarsOrder
+from autostars.src.types.enums import StarsOrderStatus
+
+
+USER_VERSION = 1
 
 
 class Storage(ABC):
@@ -53,6 +56,13 @@ class Sqlite3Storage(Storage):
         self._conn = await aiosqlite.connect(self.path)
         self._conn.row_factory = aiosqlite.Row
 
+        cur = await self._conn.execute('PRAGMA user_version;')
+        r = await cur.fetchone()
+        if r['user_version'] != USER_VERSION:
+            await cur.execute("DROP TABLE IF EXISTS orders;")
+            await cur.execute(f"PRAGMA user_version = {USER_VERSION};")
+            await self._conn.commit()
+
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS "orders" (
 	            "order_id"	          TEXT    NOT NULL UNIQUE,
@@ -67,6 +77,7 @@ class Sqlite3Storage(Storage):
                 
                 "recipient_id"        TEXT,
                 "fragment_request_id" TEXT,
+                "ref"                 TEXT,
                 "in_msg_hash"         TEXT,
                 "transaction_hash"    TEXT,
 
