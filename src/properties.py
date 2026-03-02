@@ -119,13 +119,57 @@ class MessagesProperties(Properties):
             StringParameter(
                 id='transaction_failed_message',
                 name='Сообщение о неудачной транзакции',
-                description='Сообщение, которое будет отправлено в чат покупателю, когда транзакция не будет завершена.',
+                description='Сообщение, которое будет отправлено в чат покупателю, если транзакция завершилась ошибкой.',
                 default_value=(
                     '❌ $order<counterparty.username>, не удалось перевести звезды.\n'
                     'Продавец уведомлен и придет на помощь как только сможет!'
                 ),
                 flags=[TelegramUIEmojiFlag('❌')],
             ),
+        )
+
+        self.invalid_username_message = self.attach_node(
+            StringParameter(
+                id='invalid_username_message',
+                name='Невалидный юзернейм',
+                description='Сообщение, которое будет отправлено в чат покупателю, если указанный юзернейм невалиден.',
+                default_value=(
+                    '❌ $order<counterparty.username>, telegram юзернейм @$autostars_username невалиден.\n\n'
+                    'Проверьте правильность введенного юзернейма и введите команду:\n'
+                    '/stars $order<id> ваш_телеграм_юзернейм'
+                ),
+                flags=[TelegramUIEmojiFlag('👤')],
+            )
+        )
+
+        self.not_user_username_message = self.attach_node(
+            StringParameter(
+                id='not_user_username_message',
+                name='Не пользовательский юзернейм',
+                description='Сообщение, которое будет отправлено в чат покупателю, если указанный юзернейм принадлежит НЕ пользователю (каналу / чату).',
+                default_value=(
+                    '❌ $order<counterparty.username>, telegram тег @$autostars_username принадлежит не пользователю.\n'
+                    'Перевод звезд каналам или чатам не поддерживается.\n\n'
+                    'Пожалуйста, укажите юзернейм, который принадлежит пользователю в команде:\n'
+                    '/stars $order<id> ваш_телеграм_юзернейм'
+                ),
+                flags=[TelegramUIEmojiFlag('👤')],
+            )
+        )
+
+        self.failed_to_fetch_username_message = self.attach_node(
+            StringParameter(
+                id='failed_to_fetch_username',
+                name='Ошибка проверки юзернейма',
+                description='Сообщение, которое будет отправно в чат покупателю, если не удалось проверить юзернейм.',
+                default_value=(
+                    '❌ $order<counterparty.username>, не удалось проверить юзернейм @$autostars_username (ошибка на стороне Telegram).\n'
+                    'Продавец уже уведомлен и спешит на помощь!\n\n'
+                    'Попробуйте позже введя команду:\n'
+                    '/stars $order<id> ваш_телеграм_юзернейм'
+                ),
+                flags=[TelegramUIEmojiFlag('👤')],
+            )
         )
 
         self.username_not_found_message = self.attach_node(
