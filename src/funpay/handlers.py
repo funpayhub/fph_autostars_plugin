@@ -13,6 +13,7 @@ from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
 from autostars.src.autostars_provider import AutostarsProvider
 
 from funpayhub.lib.translater import _ru
+
 from .utils import extract_stars_orders
 
 
@@ -20,9 +21,10 @@ if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
     from funpaybotengine.types import Message
     from funpaybotengine.runner import EventsStack
-    from autostars.src.fragment_api import FragmentAPI
-    from funpayhub.app.main import FunPayHub as FPH
     from autostars.src.callbacks import Callbacks
+    from autostars.src.fragment_api import FragmentAPI
+
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 router = Router(name='autostars')
@@ -71,7 +73,7 @@ async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider,
 
     if checked[StarsOrderStatus.WAITING_FOR_USERNAME]:
         asyncio.create_task(
-            cbs.on_username_not_found(*checked[StarsOrderStatus.WAITING_FOR_USERNAME])
+            cbs.on_username_not_found(*checked[StarsOrderStatus.WAITING_FOR_USERNAME]),
         )
 
     # todo: send notification in chat if error occurred while fetching username
@@ -82,7 +84,9 @@ async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider,
     handler_id='Save telegram stars orders',
 )
 async def sale_orders(
-    events_stack: EventsStack, hub: FPH, autostars_provider: AutostarsProvider,
+    events_stack: EventsStack,
+    hub: FPH,
+    autostars_provider: AutostarsProvider,
     autostars_callbacks: Callbacks,
 ) -> None:
     orders = await extract_stars_orders(events_stack.events, hub.instance_id)

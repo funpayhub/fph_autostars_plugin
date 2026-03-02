@@ -1,21 +1,28 @@
+from __future__ import annotations
+
+
 __all__ = [
     'AddFormattersMenuModification',
     'MODIFICATIONS',
 ]
 
-from funpayhub.app.properties import FunPayHubProperties
-from funpayhub.lib.base_app.telegram.app.properties.ui import NodeMenuContext
-from funpayhub.lib.telegram.ui import MenuModification, Menu
 from autostars.src.properties import AutostarsProperties
-from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
-from funpayhub.app.telegram.ui.ids import MenuIds
+
 from funpayhub.lib.translater import Translater
+from funpayhub.lib.telegram.ui import Menu, MenuModification
+from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
+from funpayhub.lib.base_app.telegram.app.properties.ui import NodeMenuContext
+
+from funpayhub.app.properties import FunPayHubProperties
+from funpayhub.app.telegram.ui.ids import MenuIds
 
 
 class AddFormattersMenuModification(MenuModification, modification_id='autostars:add_formatters'):
-    async def filter(self, ctx: NodeMenuContext, menu: Menu, properties: FunPayHubProperties) -> bool:
+    async def filter(
+        self, ctx: NodeMenuContext, menu: Menu, properties: FunPayHubProperties
+    ) -> bool:
         plugin_props: AutostarsProperties = properties.plugin_properties.get_properties(
-            ['com_github_qvvonk_funpayhub_autostars_plugin']
+            ['com_github_qvvonk_funpayhub_autostars_plugin'],
         )
         return len(ctx.entry_path) == len(plugin_props.messages.path) + 1
 
@@ -33,5 +40,5 @@ class AddFormattersMenuModification(MenuModification, modification_id='autostars
 
 
 MODIFICATIONS = {
-    MenuIds.props_param_manual_input: [AddFormattersMenuModification]
+    MenuIds.props_param_manual_input: [AddFormattersMenuModification],
 }

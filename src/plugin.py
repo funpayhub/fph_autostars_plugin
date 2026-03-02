@@ -22,14 +22,14 @@ from .funpay import funpay_router
 from .tonapi import TonAPI
 from .storage import Sqlite3Storage
 from .telegram import ROUTERS
-from .formatters import StarsOrderCategory, FORMATTERS
+from .callbacks import Callbacks
+from .formatters import FORMATTERS, StarsOrderCategory
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
-from .telegram.ui.modifications import MODIFICATIONS
 from .fragment_api import FragmentAPI
-from .transferer_service import TransferrerService
 from .autostars_provider import AutostarsProvider
-from .callbacks import Callbacks
+from .transferer_service import TransferrerService
+from .telegram.ui.modifications import MODIFICATIONS
 
 
 if TYPE_CHECKING:

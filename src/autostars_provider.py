@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from autostars.src.fragment_api import FragmentAPI
 from autostars.src.ton import Wallet
+from autostars.src.fragment_api import FragmentAPI
+
 
 if TYPE_CHECKING:
     from autostars.src.tonapi import TonAPI

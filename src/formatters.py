@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import Field
 from funpaybotengine.dispatching import OrderEvent, NewMessageEvent
 
 from funpayhub.lib.hub.text_formatters import Formatter
 from funpayhub.lib.hub.text_formatters.category import FormatterCategory
-from pydantic import Field
 
 from funpayhub.app.formatters import (
     NewOrderContext,
@@ -50,7 +50,7 @@ DESC = (
     'Можно так же использовать <code>$autostars_ref</code>.'
 )
 
-DELIMETER = "\U0001D17A"
+DELIMETER = '\U0001d17a'
 
 
 class StarsOrderFormatter(
@@ -60,7 +60,8 @@ class StarsOrderFormatter(
     description=DESC,
     context_type=StarsOrderFormatterContext,
 ):
-    def __init__(self,
+    def __init__(
+        self,
         context: StarsOrderFormatterContext,
         mode: str = '',
         *args,
@@ -180,5 +181,5 @@ FORMATTERS = [
     AutostarsUsernameFormatter,
     AutostarsStarsAmountFormatter,
     AutostarsRecipientIDFormatter,
-    AutostarsRefFormatter
+    AutostarsRefFormatter,
 ]

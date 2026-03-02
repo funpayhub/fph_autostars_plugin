@@ -139,7 +139,7 @@ class MessagesProperties(Properties):
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
                 flags=[TelegramUIEmojiFlag('👤')],
-            )
+            ),
         )
 
         self.not_user_username_message = self.attach_node(
@@ -154,7 +154,7 @@ class MessagesProperties(Properties):
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
                 flags=[TelegramUIEmojiFlag('👤')],
-            )
+            ),
         )
 
         self.failed_to_fetch_username_message = self.attach_node(
@@ -169,7 +169,7 @@ class MessagesProperties(Properties):
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
                 flags=[TelegramUIEmojiFlag('👤')],
-            )
+            ),
         )
 
         self.username_not_found_message = self.attach_node(

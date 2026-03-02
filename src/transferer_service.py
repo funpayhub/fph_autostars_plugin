@@ -1,26 +1,23 @@
 from __future__ import annotations
 
-import asyncio
 import time
+import asyncio
 from typing import TYPE_CHECKING
-from wsgiref.util import request_uri
 
 from autostars.src.ton import Wallet
+from autostars.src.logger import logger
 from autostars.src.ton.wallet import Transfer
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
-from autostars.src.logger import logger
 
 from funpayhub.lib.translater import _ru
 
 
-from .fragment_api.types import BuyStarsLink
-
-
 if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
-    from autostars.src.autostars_provider import AutostarsProvider
-    from funpayhub.app.main import FunPayHub as FPH
     from autostars.src.callbacks import Callbacks
+    from autostars.src.autostars_provider import AutostarsProvider
+
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 class TransferrerService:
@@ -105,7 +102,9 @@ class TransferrerService:
                 await self.provider.storage.add_or_update_order(i)
                 continue
 
-            payload = await self.callbacks.pyload_factory(i, link.transaction.messages[0].clear_payload)
+            payload = await self.callbacks.pyload_factory(
+                i, link.transaction.messages[0].clear_payload
+            )
             transfer = Transfer(
                 address=link.transaction.messages[0].address,
                 amount=link.transaction.messages[0].amount,
@@ -120,14 +119,16 @@ class TransferrerService:
             return
 
         boc, in_hash = await wallet.create_external_transfer_message(*ready_orders.values())
-        for i in ready_orders: i.in_msg_hash, i.status = in_hash, StarsOrderStatus.TRANSFERRING
+        for i in ready_orders:
+            i.in_msg_hash, i.status = in_hash, StarsOrderStatus.TRANSFERRING
         await self.provider.storage.add_or_update_orders(*ready_orders)
 
         try:
             await self.provider.tonapi.send_message(boc)
         except Exception:
             logger.error('Ошибка перевода %s.', [i.order_id for i in ready_orders], exc_info=True)
-            for i in ready_orders: i.status, i.error = StarsOrderStatus.ERROR, ErrorTypes.UNKNOWN
+            for i in ready_orders:
+                i.status, i.error = StarsOrderStatus.ERROR, ErrorTypes.UNKNOWN
             await self.provider.storage.add_or_update_orders(*ready_orders)
             return
 
@@ -135,12 +136,14 @@ class TransferrerService:
             tr = await self.provider.wallet.wait_for_transfer(in_hash, int(time.time() + 60))
         except TimeoutError:
             logger.error('Таймаут ожидания транзакции с in_msg_hash=%s.', in_hash)
-            for i in ready_orders: i.status, i.error = StarsOrderStatus.ERROR, ErrorTypes.UNKNOWN
+            for i in ready_orders:
+                i.status, i.error = StarsOrderStatus.ERROR, ErrorTypes.UNKNOWN
             await self.provider.storage.add_or_update_orders(*ready_orders)
             return
 
         logger.info('Перевел по заказам %s. Хэш: %s.', [i.order_id for i in ready_orders], tr.hash)
-        for i in ready_orders: i.status, i.transaction_hash = StarsOrderStatus.DONE, tr.hash
+        for i in ready_orders:
+            i.status, i.transaction_hash = StarsOrderStatus.DONE, tr.hash
         await self.provider.storage.add_or_update_orders(*ready_orders)
 
     async def stop(self) -> None:

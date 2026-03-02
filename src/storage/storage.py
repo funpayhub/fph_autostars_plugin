@@ -10,7 +10,6 @@ from pathlib import Path
 
 import aiosqlite
 from aiosqlite import Cursor, Connection
-
 from autostars.src.types import StarsOrder
 from autostars.src.types.enums import StarsOrderStatus
 
@@ -59,8 +58,8 @@ class Sqlite3Storage(Storage):
         cur = await self._conn.execute('PRAGMA user_version;')
         r = await cur.fetchone()
         if r['user_version'] != USER_VERSION:
-            await cur.execute("DROP TABLE IF EXISTS orders;")
-            await cur.execute(f"PRAGMA user_version = {USER_VERSION};")
+            await cur.execute('DROP TABLE IF EXISTS orders;')
+            await cur.execute(f'PRAGMA user_version = {USER_VERSION};')
             await self._conn.commit()
 
         await self._conn.execute("""

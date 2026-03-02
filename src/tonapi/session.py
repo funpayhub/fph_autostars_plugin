@@ -85,5 +85,6 @@ class Session:
             raise
         except Exception as e:
             raise TonAPIError(
-                'Произошла ошибка при выполнении запроса %s', method.get_path()
+                'Произошла ошибка при выполнении запроса %s',
+                method.get_path(),
             ) from e

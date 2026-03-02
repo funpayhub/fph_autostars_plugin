@@ -8,9 +8,12 @@ from dataclasses import dataclass
 from pytoniq import Cell, Address, WalletV5R1
 from pytoniq_core import StateInit, MessageAny, WalletMessage
 from pytoniq_core.crypto.keys import mnemonic_is_valid, mnemonic_to_private_key
-from autostars.src.tonapi.types import Wallet as TonAPIWallet
+from autostars.src.tonapi.types import (
+    Wallet as TonAPIWallet,
+    Transaction,
+)
 from pytoniq.contract.wallets.wallet_v5 import WALLET_V5_R1_CODE
-from autostars.src.tonapi.types import Transaction
+
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
@@ -144,7 +147,7 @@ class Wallet:
     async def create_external_transfer_message(
         self,
         *transfers: Transfer,
-        seqno: int | None = None
+        seqno: int | None = None,
     ) -> tuple[str, str]:
         if seqno is None:
             seqno = (await self.provider.tonapi.get_seqno(self.address)).seqno
@@ -158,7 +161,7 @@ class Wallet:
             request_time = time.time()
             try:
                 return await self.provider.tonapi.get_transaction_by_msg_hash(msg_hash)
-            except Exception: # todo: log unexpected exceptions
+            except Exception:  # todo: log unexpected exceptions
                 pass
 
             if request_time > valid_until:

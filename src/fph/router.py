@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autostars.src.ton import Wallet
-from autostars.src.fragment_api import FragmentAPI
-
 from funpayhub.app.dispatching import Router
 
 
@@ -40,7 +37,7 @@ async def update_fragment_api(
 ):
     await autostars_provider.change_fragment_api(
         plugin.properties.wallet.cookies.value,
-        plugin.properties.wallet.fragment_hash.value
+        plugin.properties.wallet.fragment_hash.value,
     )
 
 
