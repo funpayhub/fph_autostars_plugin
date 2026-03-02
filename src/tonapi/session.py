@@ -51,7 +51,6 @@ class Session:
         call = (
             session.get(url=path) if method.method == 'GET' else session.post(url=path, data=data)
         )
-        print(path, data, sep='\n')
         async with call as r:
             self._last_request_ts = time.monotonic()
             try:

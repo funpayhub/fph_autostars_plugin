@@ -22,7 +22,7 @@ from .funpay import funpay_router
 from .tonapi import TonAPI
 from .storage import Sqlite3Storage
 from .telegram import ROUTERS
-from .formatters import StarsOrderCategory, StarsOrderFormatter
+from .formatters import StarsOrderCategory, FORMATTERS
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
 from .fragment_api import FragmentAPI
@@ -100,7 +100,7 @@ class AutostarsPlugin(Plugin):
         ]
 
     async def formatters(self) -> type[Formatter] | list[type[Formatter]] | None:
-        return StarsOrderFormatter
+        return FORMATTERS
 
     async def setup_formatters(self) -> None:
         self.hub.funpay.text_formatters.add_category(StarsOrderCategory)
