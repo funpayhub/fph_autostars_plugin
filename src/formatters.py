@@ -60,8 +60,7 @@ class StarsOrderFormatter(
     description=DESC,
     context_type=StarsOrderFormatterContext,
 ):
-    def __init__(
-        self,
+    def __init__(self,
         context: StarsOrderFormatterContext,
         mode: str = '',
         *args,
@@ -93,12 +92,7 @@ class AutostarsHashFormatter(
     'Можно так же использовать <code>$autostars&lt;transaction_hash&gt;</code>.',
     context_type=StarsOrderFormatterContext,
 ):
-    def __init__(
-        self,
-        context: StarsOrderFormatterContext,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, context: StarsOrderFormatterContext, *args, **kwargs) -> None:
         super().__init__(context, *args)
 
     def format(self) -> str:
@@ -113,12 +107,7 @@ class AutostarsUsernameFormatter(
     'Можно так же использовать <code>$autostars&lt;telegram_username&gt;</code>.',
     context_type=StarsOrderFormatterContext,
 ):
-    def __init__(
-        self,
-        context: StarsOrderFormatterContext,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, context: StarsOrderFormatterContext, *args, **kwargs) -> None:
         super().__init__(context, *args)
 
     def format(self) -> str:
@@ -133,12 +122,7 @@ class AutostarsStarsAmountFormatter(
     'Можно так же использовать <code>$autostars&lt;stars_amount&gt;</code>.',
     context_type=StarsOrderFormatterContext,
 ):
-    def __init__(
-        self,
-        context: StarsOrderFormatterContext,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, context: StarsOrderFormatterContext, *args, **kwargs) -> None:
         super().__init__(context, *args)
 
     def format(self) -> str:
@@ -153,12 +137,7 @@ class AutostarsRecipientIDFormatter(
     'Можно так же использовать <code>$autostars&lt;recipient_id&gt;</code>.',
     context_type=StarsOrderFormatterContext,
 ):
-    def __init__(
-        self,
-        context: StarsOrderFormatterContext,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, context: StarsOrderFormatterContext, *args, **kwargs) -> None:
         super().__init__(context, *args)
 
     def format(self) -> str:
@@ -173,12 +152,7 @@ class AutostarsRefFormatter(
     'Можно так же использовать <code>$autostars&lt;ref&gt;</code>.',
     context_type=StarsOrderFormatterContext,
 ):
-    def __init__(
-        self,
-        context: StarsOrderFormatterContext,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, context: StarsOrderFormatterContext, *args, **kwargs) -> None:
         super().__init__(context, *args)
 
     def format(self) -> str:
