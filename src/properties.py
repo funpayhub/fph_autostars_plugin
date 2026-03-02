@@ -78,7 +78,7 @@ class MessagesProperties(Properties):
             id='messages',
             name='Настройки сообщений',
             description='Настройки FunPay сообщений, комментариев к транзакциям и т.д.',
-            flags=[TelegramUIEmojiFlag('💬')],
+            flags=[TelegramUIEmojiFlag('💬'), ParameterFlags.HIDE_VALUE],
         )
 
         self.show_ad = self.attach_node(
@@ -97,7 +97,7 @@ class MessagesProperties(Properties):
                 name='Сообщение о старте транзакции',
                 description='Сообщение, которое будет отправлено в чат покупателю, когда транзакция будет инициализирована.',
                 default_value='',
-                flags=[TelegramUIEmojiFlag('♻️')],
+                flags=[TelegramUIEmojiFlag('♻️'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -111,7 +111,7 @@ class MessagesProperties(Properties):
                     '$autostars_amount звёзд успешно переведены на аккаунт $autostars_username.\n\n'
                     '#️⃣ Хэш TON транзакции: $autostars_hash.'
                 ),
-                flags=[TelegramUIEmojiFlag('✅')],
+                flags=[TelegramUIEmojiFlag('✅'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -124,7 +124,7 @@ class MessagesProperties(Properties):
                     '❌ $order<counterparty.username>, не удалось перевести звезды.\n'
                     'Продавец уведомлен и придет на помощь как только сможет!'
                 ),
-                flags=[TelegramUIEmojiFlag('❌')],
+                flags=[TelegramUIEmojiFlag('❌'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -138,7 +138,7 @@ class MessagesProperties(Properties):
                     'Проверьте правильность введенного юзернейма и введите команду:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
-                flags=[TelegramUIEmojiFlag('👤')],
+                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -153,7 +153,7 @@ class MessagesProperties(Properties):
                     'Пожалуйста, укажите юзернейм, который принадлежит пользователю в команде:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
-                flags=[TelegramUIEmojiFlag('👤')],
+                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -168,7 +168,7 @@ class MessagesProperties(Properties):
                     'Попробуйте позже введя команду:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
-                flags=[TelegramUIEmojiFlag('👤')],
+                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -182,7 +182,7 @@ class MessagesProperties(Properties):
                     'Проверьте правильность введенного юзернейма и введите команду:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
-                flags=[TelegramUIEmojiFlag('👤')],
+                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -192,6 +192,6 @@ class MessagesProperties(Properties):
                 name='Комментарий к транзакции',
                 description='Сообщение, которое будет вставлено в комментарий к транзакции.',
                 default_value='',
-                flags=[TelegramUIEmojiFlag('📝')],
+                flags=[TelegramUIEmojiFlag('📝'), ParameterFlags.HIDE_VALUE],
             ),
         )
