@@ -56,22 +56,22 @@ class Sqlite3Storage(Storage):
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS "orders" (
 	            "order_id"	          TEXT    NOT NULL UNIQUE,
-                "order_stars_amount"  INTEGER NOT NULL,
-                "order_amount"        INTEGER NOT NULL,
-	            "stars_amount"        INTEGER NOT NULL,
-	            "funpay_username"     TEXT    NOT NULL,
-                "username_checked"    BOOLEAN NOT NULL DEFAULT 0,
+	            "hub_instance"        TEXT    NOT NULL,
+	            
+	            "status"	          TEXT    NOT NULL,
+                "error"	              TEXT,
+                "retries_left"        INTEGER NOT NULL,
+                
                 "funpay_chat_id"      INTEGER NOT NULL,
                 "telegram_username"	  TEXT,
+                
                 "recipient_id"        TEXT,
-                "status"	          TEXT    NOT NULL,
-                "error"	              TEXT,
                 "fragment_request_id" TEXT,
-                "transaction_hash"  TEXT,
+                "in_msg_hash"         TEXT,
+                "transaction_hash"    TEXT,
+
                 "message_obj"	      TEXT    NOT NULL,
                 "order_preview"	      TEXT    NOT NULL,
-                "hub_instance"        TEXT    NOT NULL,
-                "retries_left"        INTEGER NOT NULL,
                 PRIMARY KEY("order_id")
 );""")
 
