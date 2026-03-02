@@ -106,7 +106,7 @@ async def update_order_username(
     if len(args) < 2:
         return
 
-    order_id, username = args[0], args[1]
+    order_id, username = args[0], args[1].replace('@', '')
 
     if not orderid_re.fullmatch(order_id) or username_re.fullmatch(username):
         return

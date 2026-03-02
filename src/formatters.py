@@ -50,6 +50,8 @@ DESC = (
     'Можно так же использовать <code>$autostars_ref</code>.'
 )
 
+DELIMETER = "\U0001D17A"
+
 
 class StarsOrderFormatter(
     Formatter[StarsOrderFormatterContext],
@@ -70,15 +72,15 @@ class StarsOrderFormatter(
 
     def format(self) -> str:
         if self.mode == 'transaction_hash':
-            return self.context.stars_order.transaction_hash or ''
+            return AutostarsHashFormatter(self.context).format()
         if self.mode == 'telegram_username':
-            return self.context.stars_order.telegram_username or ''
+            return AutostarsUsernameFormatter(self.context).format()
         if self.mode == 'stars_amount':
-            return str(self.context.stars_order.stars_amount)
+            return AutostarsStarsAmountFormatter(self.context).format()
         if self.mode == 'recipient_id':
-            return self.context.stars_order.recipient_id or ''
+            return AutostarsRecipientIDFormatter(self.context).format()
         if self.mode == 'ref':
-            return self.context.stars_order.ref or ''
+            return AutostarsRefFormatter(self.context).format()
         return ''
 
 
@@ -120,7 +122,7 @@ class AutostarsUsernameFormatter(
         super().__init__(context, *args)
 
     def format(self) -> str:
-        return self.context.stars_order.telegram_username or ''
+        return DELIMETER.join(self.context.stars_order.telegram_username) or ''
 
 
 class AutostarsStarsAmountFormatter(
