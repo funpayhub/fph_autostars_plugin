@@ -32,21 +32,30 @@ username_re = re.compile(r'@?[a-zA-Z0-9_]{4,32}')
 orderid_re = re.compile(r'[A-Z0-9]{8}')
 
 
+_CHECK_USERNAME_ERRORS = {
+    'no telegram users found.': ErrorTypes.USERNAME_NOT_FOUND,
+    'please enter a username assigned to a user.': ErrorTypes.NOT_USER_USERNAME,
+}
+
+
 async def check_username(o: StarsOrder, api: FragmentAPI) -> StarsOrder:
     for i in range(3):
         try:
             r = await api.search_stars_recipient(o.telegram_username)
             o.status, o.recipient_id = StarsOrderStatus.READY, r.found.recipient
             return o
-        except FragmentResponseError:
+        except FragmentResponseError as e:
             o.status = StarsOrderStatus.WAITING_FOR_USERNAME
+            o.error = _CHECK_USERNAME_ERRORS.get(
+                e.error_text.lower(),
+                ErrorTypes.UNABLE_TO_FETCH_USERNAME
+            )
             return o
         except Exception:
             logger.warning('Ошибка проверки @%s (%d).', o.telegram_username, i + 1, exc_info=True)
             await asyncio.sleep(1)
-    o.status = StarsOrderStatus.ERROR
+    o.status = StarsOrderStatus.WAITING_FOR_USERNAME
     o.error = ErrorTypes.UNABLE_TO_FETCH_USERNAME
-    o.retries_left = 0
     return o
 
 
@@ -58,9 +67,10 @@ async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider,
     for order in orders:
         if not order.telegram_username or not username_re.fullmatch(order.telegram_username):
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
+            order.error = ErrorTypes.INVALID_USERNAME
             checked[order.status].append(order)
         elif provider.fragmentapi is None:
-            order.status = StarsOrderStatus.ERROR
+            order.status = StarsOrderStatus.WAITING_FOR_USERNAME
             order.error = ErrorTypes.FRAGMENT_API_NOT_PROVIDED
             checked[order.status].append(order)
         else:
@@ -73,10 +83,8 @@ async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider,
 
     if checked[StarsOrderStatus.WAITING_FOR_USERNAME]:
         asyncio.create_task(
-            cbs.on_username_not_found(*checked[StarsOrderStatus.WAITING_FOR_USERNAME]),
+            cbs.on_username_check_error(*checked[StarsOrderStatus.WAITING_FOR_USERNAME]),
         )
-
-    # todo: send notification in chat if error occurred while fetching username
 
 
 @router.on_new_events_pack(
@@ -112,20 +120,14 @@ async def update_order_username(
 
     order_id, username = args[0], args[1].replace('@', '')
 
-    if not orderid_re.fullmatch(order_id) or username_re.fullmatch(username):
-        return
-
     order = await autostars_provider.storage.get_order(order_id)
     if not order or order.funpay_chat_id != message.chat_id:
         return
 
-    if order.hub_instance != hub.instance_id:
-        return  # todo: toggle in settings
+    if order.hub_instance != hub.instance_id and not message.from_me:
+        return
 
-    if order.status is not StarsOrderStatus.WAITING_FOR_USERNAME and not (
-        order.status is StarsOrderStatus.ERROR
-        and order.error is ErrorTypes.UNABLE_TO_FETCH_USERNAME
-    ):
+    if order.status is not StarsOrderStatus.WAITING_FOR_USERNAME:
         return
 
     order.telegram_username = username
