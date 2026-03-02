@@ -59,6 +59,12 @@ class StarsOrder(BaseModel):
     def deserialize_order_preview(cls, v: str | OrderPreview) -> OrderPreview:
         return OrderPreview.model_validate_json(v) if isinstance(v, str) else v
 
+    @field_validator('telegram_username', mode='before')
+    def remove_at_from_username(cls, v: str | None) -> str | None:
+        if not v:
+            return v
+        return v.lstrip('@')
+
     @computed_field
     @property
     def order_id(self) -> str:

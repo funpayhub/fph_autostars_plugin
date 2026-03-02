@@ -157,6 +157,7 @@ class AutostarsPlugin(Plugin):
         self.hub.workflow_data.update(
             {
                 'autostars_provider': self.provider,
+                'autostars_callbacks': self.callbacks,
                 'autostars_storage': self.provider.storage,
                 'autostars_service': self.transfer_service,
             },

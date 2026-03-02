@@ -108,9 +108,8 @@ class MessagesProperties(Properties):
                 description='Сообщение, которое будет отправлено в чат покупателю, когда транзакция будет завершена.',
                 default_value=(
                     '🌟 $order<counterparty.username>, '
-                    '$autostars<stars_amount> звёзд успешно переведены на аккаунт '
-                    '@$autostars<telegram_username>.\n\n'
-                    '#️⃣ Хэш TON транзакции: $autostars<transaction_hash>.'
+                    '$autostars_amount звёзд успешно переведены на аккаунт $autostars_username.\n\n'
+                    '#️⃣ Хэш TON транзакции: $autostars_hash.'
                 ),
                 flags=[TelegramUIEmojiFlag('✅')],
             ),
@@ -135,7 +134,7 @@ class MessagesProperties(Properties):
                 name='Пользователь не найден',
                 description='Сообщение, которое будет отправлено в чат покупателю, если Telegram пользователь не найден.',
                 default_value=(
-                    '❌ $order<counterparty.username>, не удалось найти Telegram аккаунт с юзернеймом @$autostars<telegram_username>.\n\n'
+                    '❌ $order<counterparty.username>, не удалось найти Telegram аккаунт с юзернеймом @$autostars_username.\n\n'
                     'Проверьте правильность введенного юзернейма и введите команду:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
