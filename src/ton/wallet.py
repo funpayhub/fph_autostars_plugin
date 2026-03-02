@@ -136,6 +136,7 @@ class Wallet:
             raise ValueError('Invalid wallet.')
         clss_ = cls(wallet, provider)
         clss_._last_info = wallet_info
+        return clss_
 
     async def get_balance(self) -> int:
         return (await self.provider.tonapi.get_wallet(self.address)).balance

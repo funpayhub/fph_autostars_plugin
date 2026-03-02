@@ -6,7 +6,6 @@ __all__ = ['Callbacks']
 
 import asyncio
 from typing import TYPE_CHECKING
-from autostars.src.plugin import AutostarsPlugin
 from funpayhub.app.main import FunPayHub
 from autostars.src.logger import logger
 from funpayhub.lib.translater import _ru
@@ -18,6 +17,7 @@ from autostars.src.other import NotificationChannels
 
 if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
+    from autostars.src.plugin import AutostarsPlugin
 
 
 

@@ -9,10 +9,9 @@ from funpayhub.app.dispatching import Router
 
 
 if TYPE_CHECKING:
-    from autostars.src.ton import WalletProvider
     from autostars.src.plugin import AutostarsPlugin
     from autostars.src.properties import AutostarsProperties
-    from autostars.src.fragment_api import FragmentAPIProvider
+    from autostars.src.autostars_provider import AutostarsProvider
 
     from funpayhub.lib.plugin import LoadedPlugin
     from funpayhub.lib.properties import StringParameter
@@ -24,12 +23,8 @@ router = Router(name='autostars')
 @router.on_parameter_value_changed(
     lambda parameter, plugin: parameter.path == plugin.properties.wallet.mnemonics.path,
 )
-async def update_wallet(autostars_wallet: WalletProvider, parameter: StringParameter):
-    if not parameter.value:
-        autostars_wallet.wallet = None
-        return
-
-    autostars_wallet.wallet = await Wallet.from_mnemonics(parameter.value)
+async def update_wallet(autostars_provider: AutostarsProvider, parameter: StringParameter):
+    await autostars_provider.change_wallet(parameter.value)
 
 
 @router.on_parameter_value_changed(
@@ -40,23 +35,16 @@ async def update_wallet(autostars_wallet: WalletProvider, parameter: StringParam
     ],
 )
 async def update_fragment_api(
-    autostars_fragment_api: FragmentAPIProvider,
+    autostars_provider: AutostarsProvider,
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ):
-    if (
-        not plugin.properties.wallet.cookies.value
-        or not plugin.properties.wallet.fragment_hash.value
-    ):
-        autostars_fragment_api.api = None
-        return
-
-    autostars_fragment_api.api = FragmentAPI(
-        cookies=plugin.properties.wallet.cookies.value,
-        hash=plugin.properties.wallet.fragment_hash.value,
+    await autostars_provider.change_fragment_api(
+        plugin.properties.wallet.cookies.value,
+        plugin.properties.wallet.fragment_hash.value
     )
 
 
 @router.on_funpayhub_stopped()
 async def stop_service(plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]):
     await plugin.plugin.transfer_service.stop()
-    await plugin.plugin.storage.stop()
+    await plugin.plugin.provider.storage.stop()

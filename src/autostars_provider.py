@@ -22,6 +22,14 @@ class AutostarsProvider:
         self._fragmentapi = fragmentapi
         self._wallet = wallet
 
+    async def change_wallet(self, mnemonic: str) -> Wallet | None:
+        self._wallet = await Wallet.from_mnemonics(mnemonic, self) if mnemonic else None
+        return self._wallet
+
+    async def change_fragment_api(self, cookies: str, hash: str) -> FragmentAPI | None:
+        self._fragmentapi = FragmentAPI(cookies, hash) if cookies and hash else None
+        return self._fragmentapi
+
     @property
     def storage(self) -> Storage:
         return self._storage
