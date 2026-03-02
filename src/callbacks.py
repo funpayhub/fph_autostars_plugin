@@ -51,12 +51,13 @@ class Callbacks:
 
         return ''.join(i for i in pack.entries if isinstance(i, str)) + f'\n\n{text}'
 
-    async def on_username_not_found(self, order: StarsOrder) -> None:
-        await self.default_hook(
-            order,
-            self.plugin.props.messages.username_not_found_message.value,
-            'Invalid telegram username',
-        )
+    async def on_username_not_found(self, *orders: StarsOrder) -> None:
+        for order in orders:
+            asyncio.create_task(self.default_hook(
+                order,
+                self.plugin.props.messages.username_not_found_message.value,
+                'Invalid telegram username',
+            ))
 
     async def on_username_fetch_error(self, order: StarsOrder) -> None:
         ...  # todo: add parameter

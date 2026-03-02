@@ -75,6 +75,10 @@ class StarsOrderFormatter(
             return self.context.stars_order.telegram_username or ''
         if self.mode == 'stars_amount':
             return str(self.context.stars_order.stars_amount)
+        if self.mode == 'recipient_id':
+            return self.context.stars_order.recipient_id or ''
+        if self.mode == 'ref':
+            return self.context.stars_order.ref or ''
         return ''
 
 
