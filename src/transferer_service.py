@@ -53,7 +53,7 @@ class TransferrerService:
             wallet = self.provider.wallet
 
             if fragment_api is None or wallet is None:
-                logger.warning(f'Fragment API или кошелек не указан.')
+                logger.warning(f'Fragment API или кошелек не указаны.')
                 continue
 
             orders = (await self.provider.storage.get_ready_orders(self.hub.instance_id)).values()
@@ -65,6 +65,7 @@ class TransferrerService:
                 i.retries_left -= 1
             await self.provider.storage.add_or_update_orders(*orders)
 
+            logger.info('Начинаю перевод TON для заказов %s.', [i.order_id for i in orders])
             await self.transfer(fragment_api, wallet, *orders)
 
             errored, done = [], []
@@ -92,7 +93,11 @@ class TransferrerService:
             not_enough_ton_orders = {k for k in ready_orders if k not in approved_orders}
         except Exception:
             logger.error(f'Ошибка получения баланса TON.', exc_info=True)
-            await self.update_orders(*ready_orders.values(),  status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
+            await self.update_orders(
+                *ready_orders.values(),
+                status=SOS.ERROR,
+                error=ErrorTypes.GET_BALANCE_ERROR
+            )
             return
 
         if not_enough_ton_orders:
@@ -114,7 +119,7 @@ class TransferrerService:
             link = await api.get_buy_stars_link(req.request_id)
         except Exception:
             logger.error('Ошибка получения ссылки по заказу %s.', o.order_id, exc_info=True)
-            o.status, o.error = SOS.ERROR, ErrorTypes.UNKNOWN
+            o.status, o.error = SOS.ERROR, ErrorTypes.UNABLE_TO_FETCH_STARS_LINK
             return o, None
 
         o.ref, o.fragment_request_id = link.transaction.messages[0].clear_payload, req.request_id
