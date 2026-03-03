@@ -4,11 +4,12 @@ import time
 import asyncio
 from typing import TYPE_CHECKING
 
+from autostars.src.fragment_api import FragmentAPI
 from autostars.src.ton import Wallet
 from autostars.src.logger import logger
 from autostars.src.ton.wallet import Transfer
-from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
-
+from autostars.src.types.enums import ErrorTypes, StarsOrderStatus as SOS
+from typing import Any
 from funpayhub.lib.translater import _ru
 
 
@@ -48,37 +49,29 @@ class TransferrerService:
 
             await asyncio.sleep(2)
 
-            fragment_api = self.provider.fragmentapi
+            fragment_api = self.provider.fragment
             wallet = self.provider.wallet
 
-            orders = await self.provider.storage.get_ready_orders(instance_id=self.hub.instance_id)
-            orders = list(orders.values())
+            if fragment_api is None or wallet is None:
+                logger.warning(f'Fragment API или кошелек не указан.')
+                continue
+
+            orders = (await self.provider.storage.get_ready_orders(self.hub.instance_id)).values()
             if not orders:
                 logger.debug(_ru('Нет готовых для перевода заказов.'))
                 continue
 
-            error = None
-            if fragment_api is None:
-                error = ErrorTypes.FRAGMENT_API_NOT_PROVIDED
-            elif wallet is None:
-                error = ErrorTypes.WALLET_NOT_PROVIDED
-
-            if error is not None:  # todo: log
-                for i in orders:
-                    i.status = StarsOrderStatus.ERROR
-                    i.error = error
-                    i.retries_left = 0
-                await self.provider.storage.add_or_update_orders(*orders)
-                asyncio.create_task(self.callbacks.on_transactions_error(*orders))
-                continue
-
+            for i in orders:
+                i.retries_left -= 1
             await self.provider.storage.add_or_update_orders(*orders)
-            await self.transfer(wallet, *orders)
+
+            await self.transfer(fragment_api, wallet, *orders)
+
             errored, done = [], []
             for i in orders:
-                if i.status is StarsOrderStatus.DONE:
+                if i.status is SOS.DONE:
                     done.append(i)
-                elif i.status is StarsOrderStatus.ERROR and i.retries_left <= 0:
+                elif i.status is SOS.ERROR and i.retries_left <= 0:
                     errored.append(i)
 
             if done:
@@ -86,95 +79,95 @@ class TransferrerService:
             if errored:
                 asyncio.create_task(self.callbacks.on_transactions_error(*errored))
 
-    async def transfer(self, wallet: Wallet, *orders: StarsOrder) -> None:
-        ready_orders: dict[StarsOrder, Transfer] = {}
-        for i in orders:
-            try:
-                request = await self.provider.fragmentapi.init_buy_stars_request(
-                    recipient=i.recipient_id,
-                    quantity=i.stars_amount,
-                )
-                link = await self.provider.fragmentapi.get_buy_stars_link(request.request_id)
-            except Exception:
-                logger.error('Ошибка получения ссылки по заказу %s.', i.order_id, exc_info=True)
-                i.status = StarsOrderStatus.ERROR
-                i.error = ErrorTypes.UNABLE_TO_FETCH_STARS_LINK
-                await self.provider.storage.add_or_update_order(i)
-                continue
+    async def transfer(self, fragment: FragmentAPI, wallet: Wallet, *orders: StarsOrder) -> None:
+        tasks = await asyncio.gather(*(self.stars_link(fragment, i) for i in orders))
+        await self.provider.storage.add_or_update_orders(*orders)
 
-            payload = await self.callbacks.pyload_factory(
-                i, link.transaction.messages[0].clear_payload
-            )
-            transfer = Transfer(
-                address=link.transaction.messages[0].address,
-                amount=link.transaction.messages[0].amount,
-                payload=payload,
-                valid_until=link.transaction.valid_until,
-            )
-            ready_orders[i] = transfer
-            i.ref = link.transaction.messages[0].clear_payload
-            i.fragment_request_id = request.request_id
-
+        ready_orders = {i[0]: i[1] for i in tasks if i[1] is not None}
         if not ready_orders:
             return
 
-        ready_orders = await self.get_transferable_orders(ready_orders, wallet)
-        not_enough_ton_orders = {k: v for k, v in ready_orders.items() if v not in ready_orders}
+        try:
+            approved_orders = await self.get_transferable_orders(ready_orders, wallet)
+            not_enough_ton_orders = {k for k in ready_orders if k not in approved_orders}
+        except Exception:
+            logger.error(f'Ошибка получения баланса TON.', exc_info=True)
+            await self.update_orders(*ready_orders.values(),  status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
+            return
 
         if not_enough_ton_orders:
-            for i in not_enough_ton_orders:
-                i.status = StarsOrderStatus.ERROR
-                i.error = ErrorTypes.NOT_ENOUGH_TON
-                i.retries_left = 0
-            await self.provider.storage.add_or_update_orders(*not_enough_ton_orders)
+            await self.update_orders(
+                *not_enough_ton_orders,
+                status=SOS.ERROR,
+                error=ErrorTypes.NOT_ENOUGH_TON,
+                retries_left=0
+            )
 
         if not ready_orders:
             return
 
-        boc, in_hash = await wallet.create_external_transfer_message(*ready_orders.values())
-        for i in ready_orders:
-            i.in_msg_hash, i.status = in_hash, StarsOrderStatus.TRANSFERRING
-        await self.provider.storage.add_or_update_orders(*ready_orders)
+        await self.transfer_orders(wallet, approved_orders)
+
+    async def stars_link(self, api: FragmentAPI, o: StarsOrder) -> tuple[StarsOrder, Transfer | None]:
+        try:
+            req = await api.init_buy_stars_request(o.recipient_id, o.stars_amount)
+            link = await api.get_buy_stars_link(req.request_id)
+        except Exception:
+            logger.error('Ошибка получения ссылки по заказу %s.', o.order_id, exc_info=True)
+            o.status, o.error = SOS.ERROR, ErrorTypes.UNKNOWN
+            return o, None
+
+        o.ref, o.fragment_request_id = link.transaction.messages[0].clear_payload, req.request_id
+
+        return o, Transfer(
+            address=link.transaction.messages[0].address,
+            amount=link.transaction.messages[0].amount,
+            body=await self.callbacks.gen_payload(o, link.transaction.messages[0].clear_payload),
+            valid_until=link.transaction.valid_until,
+        )
+
+    async def transfer_orders(self, wallet: Wallet, orders: dict[StarsOrder, Transfer]) -> None:
+        boc, in_hash = await wallet.create_external_transfer_message(*orders.values())
+        await self.update_orders(*orders.values(), in_msg_hash=in_hash,  status=SOS.TRANSFERRING)
 
         try:
             await self.provider.tonapi.send_message(boc)
         except Exception:
-            logger.error('Ошибка перевода %s.', [i.order_id for i in ready_orders], exc_info=True)
-            for i in ready_orders:
-                i.status, i.error = StarsOrderStatus.ERROR, ErrorTypes.UNKNOWN
-            await self.provider.storage.add_or_update_orders(*ready_orders)
+            logger.error('Ошибка перевода %s.', [i.order_id for i in orders], exc_info=True)
+            await self.update_orders(*orders.values(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
             return
 
         try:
             tr = await self.provider.wallet.wait_for_transfer(in_hash, int(time.time() + 60))
         except TimeoutError:
             logger.error('Таймаут ожидания транзакции с in_msg_hash=%s.', in_hash)
-            for i in ready_orders:
-                i.status, i.error = StarsOrderStatus.ERROR, ErrorTypes.UNKNOWN
-            await self.provider.storage.add_or_update_orders(*ready_orders)
+            await self.update_orders(*orders.values(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
             return
 
-        logger.info('Перевел по заказам %s. Хэш: %s.', [i.order_id for i in ready_orders], tr.hash)
-        for i in ready_orders:
-            i.status, i.transaction_hash = StarsOrderStatus.DONE, tr.hash
-        await self.provider.storage.add_or_update_orders(*ready_orders)
+        logger.info('Перевел по заказам %s. Хэш: %s.', [i.order_id for i in orders], tr.hash)
+        await self.update_orders(*orders.values(), status=SOS.DONE, transaction_hash=tr.hash)
 
     async def get_transferable_orders(
-        self,
-        orders_dict: dict[StarsOrder, Transfer],
-        wallet: Wallet
+        self, orders_dict: dict[StarsOrder, Transfer], wallet: Wallet
     ) -> dict[StarsOrder, Transfer]:
-        orders = sorted(orders_dict.items(), key=lambda x: x[1].amount)
         balance = await wallet.get_balance() - int(0.1) * 1_000_000_000
         transferable_orders: dict[StarsOrder, Transfer] = {}
         total = 0
-        for order, transfer in orders:
+        for order, transfer in sorted(orders_dict.items(), key=lambda x: x[1].amount):
             if total + transfer.amount > balance:
                 break
             total += transfer.amount
             transferable_orders[order] = transfer
 
         return transferable_orders
+
+    async def update_orders(self, *orders: StarsOrder, save: bool = True, **kwargs: Any) -> None:
+        for i in orders:
+            for k, v in kwargs.items():
+                setattr(i, k, v)
+
+        if save:
+            await self.provider.storage.add_or_update_orders(*orders)
 
     async def stop(self) -> None:
         if not self._stop.is_set():

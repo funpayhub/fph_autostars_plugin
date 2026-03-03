@@ -31,11 +31,7 @@ class FragmentAPI:
             self.hash,
         )
 
-    async def init_buy_stars_request(
-        self,
-        recipient: str,
-        quantity: int = 50,
-    ) -> BuyStarsResponse:
+    async def init_buy_stars_request(self, recipient: str, quantity: int = 50) -> BuyStarsResponse:
         return await self.session.post(
             InitBuyStarsRequest(recipient=recipient, quantity=quantity),
             self.cookies,

@@ -38,7 +38,7 @@ class Callbacks:
         self._hub = plugin.hub
         self._plugin = plugin
 
-    async def pyload_factory(self, order: StarsOrder, ref: str) -> str:
+    async def gen_payload(self, order: StarsOrder, ref: str) -> str:
         text = f'{AD_TEXT}\n\n{ref}' if self.plugin.props.messages.show_ad.value else ref
         if not self.plugin.props.messages.payload_message.value:
             return text

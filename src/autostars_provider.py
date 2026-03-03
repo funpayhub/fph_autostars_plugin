@@ -16,21 +16,21 @@ class AutostarsProvider:
         self,
         tonapi: TonAPI,
         storage: Storage,
-        fragmentapi: FragmentAPI | None = None,
+        fragment: FragmentAPI | None = None,
         wallet: Wallet | None = None,
     ):
         self._storage = storage
         self._tonapi = tonapi
-        self._fragmentapi = fragmentapi
+        self._fragment = fragment
         self._wallet = wallet
 
     async def change_wallet(self, mnemonic: str) -> Wallet | None:
         self._wallet = await Wallet.from_mnemonics(mnemonic, self) if mnemonic else None
         return self._wallet
 
-    async def change_fragment_api(self, cookies: str, hash: str) -> FragmentAPI | None:
-        self._fragmentapi = FragmentAPI(cookies, hash) if cookies and hash else None
-        return self._fragmentapi
+    async def change_fragment(self, cookies: str, hash: str) -> FragmentAPI | None:
+        self._fragment = FragmentAPI(cookies, hash) if cookies and hash else None
+        return self._fragment
 
     @property
     def storage(self) -> Storage:
@@ -41,8 +41,8 @@ class AutostarsProvider:
         return self._tonapi
 
     @property
-    def fragmentapi(self) -> FragmentAPI | None:
-        return self._fragmentapi
+    def fragment(self) -> FragmentAPI | None:
+        return self._fragment
 
     @property
     def wallet(self) -> Wallet | None:

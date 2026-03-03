@@ -69,14 +69,14 @@ async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider,
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
             order.error = ErrorTypes.INVALID_USERNAME
             checked[order.status].append(order)
-        elif provider.fragmentapi is None:
+        elif provider.fragment is None:
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
             order.error = ErrorTypes.FRAGMENT_API_NOT_PROVIDED
             checked[order.status].append(order)
         else:
             to_check.append(order)
 
-    r = await asyncio.gather(*(check_username(i, provider.fragmentapi) for i in to_check))
+    r = await asyncio.gather(*(check_username(i, provider.fragment) for i in to_check))
     for i in r:
         checked[i.status].append(i)
     await storage.add_or_update_orders(*chain(*checked.values()))

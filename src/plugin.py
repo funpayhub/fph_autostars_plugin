@@ -123,7 +123,7 @@ class AutostarsPlugin(Plugin):
 
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:
             self.logger.info(_ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
-            self.provider._fragmentapi = FragmentAPI(
+            self.provider._fragment = FragmentAPI(
                 self.props.wallet.cookies.value,
                 self.props.wallet.fragment_hash.value,
             )

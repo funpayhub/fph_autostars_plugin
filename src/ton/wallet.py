@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class Transfer:
     address: str
     amount: int
-    payload: str = ''
+    body: str = ''
     valid_until: int | None = None
 
     def __post_init__(self) -> None:
@@ -87,7 +87,7 @@ class OfflineV5R1Wallet:
             self.create_internal_message(
                 destination=i.address,
                 amount=i.amount,
-                body=i.payload,
+                body=i.body,
             )
             for i in transfers
         ]
