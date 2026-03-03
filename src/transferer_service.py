@@ -133,24 +133,24 @@ class TransferrerService:
 
     async def transfer_orders(self, wallet: Wallet, orders: dict[StarsOrder, Transfer]) -> None:
         boc, in_hash = await wallet.create_external_transfer_message(*orders.values())
-        await self.update_orders(*orders.values(), in_msg_hash=in_hash,  status=SOS.TRANSFERRING)
+        await self.update_orders(*orders.keys(), in_msg_hash=in_hash,  status=SOS.TRANSFERRING)
 
         try:
             await self.provider.tonapi.send_message(boc)
         except Exception:
             logger.error('Ошибка перевода %s.', [i.order_id for i in orders], exc_info=True)
-            await self.update_orders(*orders.values(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
+            await self.update_orders(*orders.keys(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
             return
 
         try:
             tr = await self.provider.wallet.wait_for_transfer(in_hash, int(time.time() + 60))
         except TimeoutError:
             logger.error('Таймаут ожидания транзакции с in_msg_hash=%s.', in_hash)
-            await self.update_orders(*orders.values(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
+            await self.update_orders(*orders.keys(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
             return
 
         logger.info('Перевел по заказам %s. Хэш: %s.', [i.order_id for i in orders], tr.hash)
-        await self.update_orders(*orders.values(), status=SOS.DONE, transaction_hash=tr.hash)
+        await self.update_orders(*orders.keys(), status=SOS.DONE, transaction_hash=tr.hash)
 
     async def get_transferable_orders(
         self, orders_dict: dict[StarsOrder, Transfer], wallet: Wallet

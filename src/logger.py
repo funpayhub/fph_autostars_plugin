@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from logging import getLogger
+from funpayhub.app.plugin.plugin import get_plugin_logger
 
 
-logger = getLogger('funpayhub.com_github_qvvonk_funpayhub_autostars_plugin')
+logger = get_plugin_logger('com.github.qvvonk.funpayhub.autostars_plugin')
