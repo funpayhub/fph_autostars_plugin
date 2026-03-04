@@ -69,6 +69,7 @@ class ErrorTypes(Enum):
     USERNAME_NOT_FOUND = 'USERNAME_NOT_FOUND'
     NOT_USER_USERNAME = 'NOT_USER_USERNAME'
     UNABLE_TO_FETCH_USERNAME = 'UNABLE_TO_FETCH_USERNAME'
+    FRAGMENT_API_NOT_PROVIDED = 'FRAGMENT_API_NOT_PROVIDED'
 
     @property
     def desc(self) -> str:
@@ -84,5 +85,6 @@ _error_desc = {
     ErrorTypes.INVALID_USERNAME: 'Невалидные Telegram юзернейм (не подходит по паттерну)',
     ErrorTypes.USERNAME_NOT_FOUND: 'Telegram юзернейм не найден',
     ErrorTypes.NOT_USER_USERNAME: 'Telegram юзернейм принадлежит не пользователю',
-    ErrorTypes.UNABLE_TO_FETCH_USERNAME: 'Не удалось получить данные о Telegram юзернейме (ошибка Fragment API)'
+    ErrorTypes.UNABLE_TO_FETCH_USERNAME: 'Не удалось получить данные о Telegram юзернейме (ошибка Fragment API)',
+    ErrorTypes.FRAGMENT_API_NOT_PROVIDED: 'Fragment cookies или hash не указаны в настройках или невалидны'
 }
