@@ -119,5 +119,13 @@ class StarsOrder(BaseModel):
     def stars_amount(self) -> int:
         return self.order_stars_amount * self.order_amount
 
+    @property
+    def failed(self) -> bool:
+        return self.status is StarsOrderStatus.ERROR and self.retries_left <= 1
+
+    @property
+    def done(self) -> bool:
+        return self.status is StarsOrderStatus.DONE
+
     def __hash__(self):
         return id(self)

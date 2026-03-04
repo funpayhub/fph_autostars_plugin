@@ -10,7 +10,6 @@ from autostars.src.logger import logger
 from autostars.src.ton.wallet import Transfer
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus as SOS
 from typing import Any
-from funpayhub.lib.translater import _ru
 
 
 if TYPE_CHECKING:
@@ -34,17 +33,17 @@ class TransferrerService:
     async def main_loop(self) -> None:
         try:
             await self._main_loop()
-        except:
+        except Exception:
             self._stopped.set()
             raise
 
     async def _main_loop(self) -> None:
-        logger.info(_ru('Autostars service запущен.'))
+        logger.info('Autostars service запущен.')
         self._stopped.clear()
         while True:
             if self._stop.is_set():
                 self._stopped.set()
-                logger.info(_ru('Autostars service остановлен.'))
+                logger.info('Autostars service остановлен.')
                 return
 
             await asyncio.sleep(2)
@@ -58,7 +57,7 @@ class TransferrerService:
 
             orders = (await self.provider.storage.get_ready_orders(self.hub.instance_id)).values()
             if not orders:
-                logger.debug(_ru('Нет готовых для перевода заказов.'))
+                logger.debug('Нет готовых для перевода заказов.')
                 continue
 
             for i in orders:
@@ -68,12 +67,7 @@ class TransferrerService:
             logger.info('Начинаю перевод TON для заказов %s.', [i.order_id for i in orders])
             await self.transfer(fragment_api, wallet, *orders)
 
-            errored, done = [], []
-            for i in orders:
-                if i.status is SOS.DONE:
-                    done.append(i)
-                elif i.status is SOS.ERROR and i.retries_left <= 0:
-                    errored.append(i)
+            errored, done = [i for i in orders if i.failed], [i for i in orders if i.done]
 
             if done:
                 asyncio.create_task(self.callbacks.on_successful_transaction(*done))
@@ -84,34 +78,28 @@ class TransferrerService:
         tasks = await asyncio.gather(*(self.stars_link(fragment, i) for i in orders))
         await self.provider.storage.add_or_update_orders(*orders)
 
-        ready_orders = {i[0]: i[1] for i in tasks if i[1] is not None}
-        if not ready_orders:
+        orders_to_transfer = {i[0]: i[1] for i in tasks if i[1] is not None}
+        if not orders_to_transfer:
             return
 
         try:
-            approved_orders = await self.get_transferable_orders(ready_orders, wallet)
-            not_enough_ton_orders = {k for k in ready_orders if k not in approved_orders}
+            transferable_orders = await self.get_transferable_orders(orders_to_transfer, wallet)
         except Exception:
-            logger.error(f'Ошибка получения баланса TON.', exc_info=True)
+            logger.error(f'Ошибка получения баланса TON кошелька.', exc_info=True)
             await self.update_orders(
-                *ready_orders.values(),
+                *orders_to_transfer.keys(),
                 status=SOS.ERROR,
                 error=ErrorTypes.GET_BALANCE_ERROR
             )
             return
 
-        if not_enough_ton_orders:
-            await self.update_orders(
-                *not_enough_ton_orders,
-                status=SOS.ERROR,
-                error=ErrorTypes.NOT_ENOUGH_TON,
-                retries_left=0
-            )
+        if err := (orders_to_transfer.keys() - transferable_orders.keys()):
+            await self.update_orders(*err, status=SOS.ERROR, error=ErrorTypes.NOT_ENOUGH_TON, retries_left=0)
 
-        if not ready_orders:
+        if not transferable_orders:
             return
 
-        await self.transfer_orders(wallet, approved_orders)
+        await self.transfer_orders(wallet, transferable_orders)
 
     async def stars_link(self, api: FragmentAPI, o: StarsOrder) -> tuple[StarsOrder, Transfer | None]:
         try:
@@ -139,14 +127,18 @@ class TransferrerService:
             await self.provider.tonapi.send_message(boc)
         except Exception:
             logger.error('Ошибка перевода %s.', [i.order_id for i in orders], exc_info=True)
-            await self.update_orders(*orders.keys(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
+            await self.update_orders(
+                *orders.keys(), status=SOS.ERROR, error=ErrorTypes.TRANSFER_ERROR
+            )
             return
 
         try:
             tr = await self.provider.wallet.wait_for_transfer(in_hash, int(time.time() + 60))
         except TimeoutError:
             logger.error('Таймаут ожидания транзакции с in_msg_hash=%s.', in_hash)
-            await self.update_orders(*orders.keys(), status=SOS.ERROR, error=ErrorTypes.UNKNOWN)
+            await self.update_orders(
+                *orders.keys(), status=SOS.ERROR, error=ErrorTypes.TRANSACTION_TIMEOUT_ERROR
+            )
             return
 
         logger.info('Перевел по заказам %s. Хэш: %s.', [i.order_id for i in orders], tr.hash)
