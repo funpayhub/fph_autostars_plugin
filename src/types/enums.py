@@ -42,18 +42,47 @@ class StarsOrderStatus(Enum):
     DONE = 'DONE'
     ERROR = 'ERROR'
 
+    @property
+    def desc(self) -> str:
+        return _status_desc.get(self, self.name)
+
+
+_status_desc = {
+    StarsOrderStatus.UNPROCESSED: 'Не обработан',
+    StarsOrderStatus.WAITING_FOR_USERNAME: 'Ожидается юзернейм',
+    StarsOrderStatus.READY: 'Готов к исполнению',
+    StarsOrderStatus.PREPARING_TRANSFER: 'Подготавливается перевод',
+    StarsOrderStatus.TRANSFERRING: 'Выполняется перевод TON',
+    StarsOrderStatus.DONE: 'Выполнен',
+    StarsOrderStatus.ERROR: 'Завершен с ошибкой'
+}
+
 
 class ErrorTypes(Enum):
     UNABLE_TO_FETCH_STARS_LINK = 'UNABLE_TO_FETCH_STARS_LINK'
-    WALLET_NOT_PROVIDED = 'WALLET_NOT_PROVIDED'
-    FRAGMENT_API_NOT_PROVIDED = 'FRAGMENT_API_NOT_PROVIDED'
     GET_BALANCE_ERROR = 'GET_BALANCE_ERROR'
     NOT_ENOUGH_TON = 'NOT_ENOUGH_TON'
     TRANSFER_ERROR = 'TRANSFER_ERROR'
     TRANSACTION_TIMEOUT_ERROR = 'TRANSACTION_TIMEOUT_ERROR'
-    UNKNOWN = 'UNKNOWN'
 
     INVALID_USERNAME = 'INVALID_USERNAME'
     USERNAME_NOT_FOUND = 'USERNAME_NOT_FOUND'
     NOT_USER_USERNAME = 'NOT_USER_USERNAME'
     UNABLE_TO_FETCH_USERNAME = 'UNABLE_TO_FETCH_USERNAME'
+
+    @property
+    def desc(self) -> str:
+        return _error_desc.get(self, self.name)
+
+
+_error_desc = {
+    ErrorTypes.UNABLE_TO_FETCH_STARS_LINK: 'Не удалось получить данные для перевода TON (ошибка Fragment API)',
+    ErrorTypes.GET_BALANCE_ERROR: 'Не удалось получить баланс TON кошелька',
+    ErrorTypes.NOT_ENOUGH_TON: 'Недостаточно TON',
+    ErrorTypes.TRANSFER_ERROR: 'Не удалось инициализировать перевод TON',
+    ErrorTypes.TRANSACTION_TIMEOUT_ERROR: 'Таймаут ожидания подтверждения транзакции',
+    ErrorTypes.INVALID_USERNAME: 'Невалидные Telegram юзернейм (не подходит по паттерну)',
+    ErrorTypes.USERNAME_NOT_FOUND: 'Telegram юзернейм не найден',
+    ErrorTypes.NOT_USER_USERNAME: 'Telegram юзернейм принадлежит не пользователю',
+    ErrorTypes.UNABLE_TO_FETCH_USERNAME: 'Не удалось получить данные о Telegram юзернейме (ошибка Fragment API)'
+}
