@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-__all__ = ['Wallet', 'WalletProvider']
+__all__ = ['Wallet']
 
 
-from autostars.src.ton.wallet import Wallet, WalletProvider
+from .wallet import Wallet

@@ -10,11 +10,6 @@ if TYPE_CHECKING:
     from autostars.src.fragment_api.types import BuyStarsLink, BuyStarsResponse, RecipientResponse
 
 
-class FragmentAPIProvider:
-    def __init__(self) -> None:
-        self.api: FragmentAPI | None = None
-
-
 class FragmentAPI:
     def __init__(self, cookies: str, hash: str):
         self._cookies = cookies
@@ -36,11 +31,7 @@ class FragmentAPI:
             self.hash,
         )
 
-    async def init_buy_stars_request(
-        self,
-        recipient: str,
-        quantity: int = 50,
-    ) -> BuyStarsResponse:
+    async def init_buy_stars_request(self, recipient: str, quantity: int = 50) -> BuyStarsResponse:
         return await self.session.post(
             InitBuyStarsRequest(recipient=recipient, quantity=quantity),
             self.cookies,

@@ -13,7 +13,7 @@ class FragmentException(AutostarsPluginException): ...
 class FragmentSessionError(AutostarsPluginException): ...
 
 
-class ParsingError(FragmentSessionError):
+class FragmentParsingError(FragmentSessionError):
     def __init__(self, method_name: str) -> None:
         super().__init__(
             _ru('Произошла при парсиге ответа на метод %s.'),
@@ -23,7 +23,7 @@ class ParsingError(FragmentSessionError):
         self.method_name = method_name
 
 
-class UnexpectedStatus(FragmentSessionError):
+class FragmentUnexpectedStatus(FragmentSessionError):
     def __init__(self, method_name: str, status: int) -> None:
         super().__init__(
             _ru('Произошла ошибка при запросе %s. Статус: %s.'),
@@ -71,6 +71,3 @@ class FailedToCreateStarsLink(FragmentAPIError):
         super().__init__(
             _ru('Ошибка при создании ссылки на перевод звезд.'),
         )
-
-
-class TonWalletError(AutostarsPluginException): ...

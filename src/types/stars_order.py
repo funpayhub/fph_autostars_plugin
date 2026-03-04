@@ -31,14 +31,16 @@ class StarsOrder(BaseModel):
     message_obj: Message
     order_preview: OrderPreview
     telegram_username: str | None
-    username_checked: bool = False
     recipient_id: str | None = None
+    fragment_request_id: str | None = None
+    ref: str | None = None
+    in_msg_hash: str | None = None
+    transaction_hash: str | None = None
+    hub_instance: str
     status: StarsOrderStatus = StarsOrderStatus.UNPROCESSED
     error: ErrorTypes | None = None
-    fragment_request_id: str | None = None
-    ton_transaction_id: str | None = None
-    hub_instance: str
     retries_left: int = 3
+
     _sale_event: NewSaleEvent | None = PrivateAttr(default=None)
 
     @field_serializer('message_obj', mode='plain')
@@ -57,39 +59,16 @@ class StarsOrder(BaseModel):
     def deserialize_order_preview(cls, v: str | OrderPreview) -> OrderPreview:
         return OrderPreview.model_validate_json(v) if isinstance(v, str) else v
 
-    @computed_field
-    @property
-    def order_stars_amount(self) -> int:
-        try:
-            match = STARS_AMOUNT_RE.match(self.order_preview.title)
-            return int(match.group(1))
-        except Exception as e:
-            raise ValidationError(
-                f'Unable to extract stars amount from {self.order_preview.title!r}.',
-            ) from e
-
-    @computed_field
-    @property
-    def order_amount(self) -> int:
-        try:
-            return int(PCS_RE.search(self.order_preview.title).group(1))
-        except Exception:
-            return 1
-
-    @computed_field
-    @property
-    def stars_amount(self) -> int:
-        return self.order_stars_amount * self.order_amount
+    @field_validator('telegram_username', mode='before')
+    def remove_at_from_username(cls, v: str | None) -> str | None:
+        if not v:
+            return v
+        return v.lstrip('@')
 
     @computed_field
     @property
     def order_id(self) -> str:
         return self.order_preview.id
-
-    @computed_field
-    @property
-    def funpay_username(self) -> str:
-        return self.message_obj.meta.buyer_username
 
     @computed_field
     @property
@@ -118,6 +97,35 @@ class StarsOrder(BaseModel):
             )
             self._sale_event._order_preview = self.order_preview
         return self._sale_event
+
+    @property
+    def order_stars_amount(self) -> int:
+        try:
+            match = STARS_AMOUNT_RE.match(self.order_preview.title)
+            return int(match.group(1))
+        except Exception as e:
+            raise ValidationError(
+                f'Unable to extract stars amount from {self.order_preview.title!r}.',
+            ) from e
+
+    @property
+    def order_amount(self) -> int:
+        try:
+            return int(PCS_RE.search(self.order_preview.title).group(1))
+        except Exception:
+            return 1
+
+    @property
+    def stars_amount(self) -> int:
+        return self.order_stars_amount * self.order_amount
+
+    @property
+    def failed(self) -> bool:
+        return self.status is StarsOrderStatus.ERROR and self.retries_left <= 1
+
+    @property
+    def done(self) -> bool:
+        return self.status is StarsOrderStatus.DONE
 
     def __hash__(self):
         return id(self)

@@ -5,7 +5,11 @@ from json import JSONDecodeError
 
 from aiohttp import TCPConnector, ClientSession, ClientResponseError
 from pydantic import ValidationError
-from autostars.src.exceptions import ParsingError, UnexpectedStatus, FragmentResponseError
+from autostars.src.exceptions import (
+    FragmentParsingError,
+    FragmentResponseError,
+    FragmentUnexpectedStatus,
+)
 
 
 if TYPE_CHECKING:
@@ -68,12 +72,12 @@ class Session:
             try:
                 r.raise_for_status()
             except ClientResponseError as e:
-                raise UnexpectedStatus(method.method, e.status) from e
+                raise FragmentUnexpectedStatus(method.method, e.status) from e
 
             try:
                 parsed = await r.json()
             except JSONDecodeError as e:
-                raise ParsingError(method_name=method.method) from e
+                raise FragmentParsingError(method_name=method.method) from e
 
             if parsed.get('error'):
                 raise FragmentResponseError(method.method, parsed['error'])
@@ -81,4 +85,4 @@ class Session:
             try:
                 return method.__model_to_build__.model_validate(parsed)
             except ValidationError as e:
-                raise ParsingError(method_name=method.method) from e
+                raise FragmentParsingError(method_name=method.method) from e

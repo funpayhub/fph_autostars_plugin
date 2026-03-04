@@ -4,7 +4,7 @@ from __future__ import annotations
 __all__ = ['BUILDERS']
 
 
-from autostars.src.telegram.ui.builders import StarsOrderInfoMenuBuilder
+from .builders import StarsOrderInfoMenuBuilder, StatusMenuBuilder
 
 
-BUILDERS = [StarsOrderInfoMenuBuilder]
+BUILDERS = [StarsOrderInfoMenuBuilder, StatusMenuBuilder]

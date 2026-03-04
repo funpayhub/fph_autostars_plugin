@@ -1,10 +1,10 @@
 {
   "manifest": 1,
-  "plugin_version": "0.1.2",
-  "app_version": ">=0.3.5",
+  "plugin_version": "0.2.0",
+  "app_version": ">=0.4.2",
   "plugin_id": "com.github.qvvonk.funpayhub.autostars_plugin",
-  "name": "✨ AutoStars",
-  "description": "Позволяет автоматически продавать Telegram звезды. Есть возможность настраивать тексты ответов, комментариев к транзакциям с кастомными форматтерами.\n\n⚠\uFE0F Внимание: плагин в активной стадии разработки. Возможны нестабильная работа, ошибки, недостаток функционала.",
+  "name": "Autostars",
+  "description": "Позволяет автоматически продавать Telegram звезды. Есть возможность настраивать тексты ответов, комментариев к транзакциям с кастомными форматтерами.",
   "repo": "https://github.com/funpayhub/fph_autostars_plugin",
   "author": {
     "name": "Qvvonk",
@@ -14,6 +14,5 @@
       "Telegram": "@qvvonk"
     }
   },
-  "dependencies": ["aiosqlite==0.22.1,<0.23.0", "pytoniq>=0.1.43,<0.2.0"],
   "entry_point": "src.plugin.AutostarsPlugin"
 }

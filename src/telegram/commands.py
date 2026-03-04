@@ -7,6 +7,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from autostars.src.types.enums import StarsOrderStatus
 from autostars.src.telegram.ui.context import StarsOrderMenuContext
+from funpayhub.lib.telegram.ui import MenuContext
 
 from funpayhub.lib.base_app.telegram.utils import delete_message
 
@@ -72,6 +73,11 @@ async def autostars_offer_info_from_state(
     await states.ViewingOrderInfo.clear(state)
     await _show_order_info(message.text, message, autostars_storage, tg_ui)
     delete_message(obj.state_message)
+
+
+@router.message(Command('stars_status'))
+async def stars_status(message: Message, tg_ui: UIRegistry):
+    await MenuContext(menu_id='autostars:status', trigger=message).build_and_answer(tg_ui, message)
 
 
 async def _mark_as_done(order_ids: set[str], storage: Storage, translater: Translater) -> str:

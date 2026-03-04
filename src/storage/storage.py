@@ -10,14 +10,16 @@ from pathlib import Path
 
 import aiosqlite
 from aiosqlite import Cursor, Connection
-
 from autostars.src.types import StarsOrder
 from autostars.src.types.enums import StarsOrderStatus
 
 
+USER_VERSION = 1
+
+
 class Storage(ABC):
     @abstractmethod
-    async def add_or_update_order(self, order: StarsOrder, commit: bool = True) -> None: ...
+    async def add_or_update_order(self, order: StarsOrder) -> None: ...
 
     @abstractmethod
     async def add_or_update_orders(self, *orders: StarsOrder) -> None: ...
@@ -42,9 +44,6 @@ class Storage(ABC):
         amount: int = 25,
     ) -> dict[str, StarsOrder]: ...
 
-    @abstractmethod
-    async def reset_checking_username_status(self) -> None: ...
-
 
 class Sqlite3Storage(Storage):
     def __init__(self, path: str | Path):
@@ -56,25 +55,33 @@ class Sqlite3Storage(Storage):
         self._conn = await aiosqlite.connect(self.path)
         self._conn.row_factory = aiosqlite.Row
 
+        cur = await self._conn.execute('PRAGMA user_version;')
+        r = await cur.fetchone()
+        if r['user_version'] != USER_VERSION:
+            await cur.execute('DROP TABLE IF EXISTS orders;')
+            await cur.execute(f'PRAGMA user_version = {USER_VERSION};')
+            await self._conn.commit()
+
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS "orders" (
 	            "order_id"	          TEXT    NOT NULL UNIQUE,
-                "order_stars_amount"  INTEGER NOT NULL,
-                "order_amount"        INTEGER NOT NULL,
-	            "stars_amount"        INTEGER NOT NULL,
-	            "funpay_username"     TEXT    NOT NULL,
-                "username_checked"    BOOLEAN NOT NULL DEFAULT 0,
+	            "hub_instance"        TEXT    NOT NULL,
+	            
+	            "status"	          TEXT    NOT NULL,
+                "error"	              TEXT,
+                "retries_left"        INTEGER NOT NULL,
+                
                 "funpay_chat_id"      INTEGER NOT NULL,
                 "telegram_username"	  TEXT,
+                
                 "recipient_id"        TEXT,
-                "status"	          TEXT    NOT NULL,
-                "error"	              TEXT,
                 "fragment_request_id" TEXT,
-                "ton_transaction_id"  TEXT,
+                "ref"                 TEXT,
+                "in_msg_hash"         TEXT,
+                "transaction_hash"    TEXT,
+
                 "message_obj"	      TEXT    NOT NULL,
                 "order_preview"	      TEXT    NOT NULL,
-                "hub_instance"        TEXT    NOT NULL,
-                "retries_left"        INTEGER NOT NULL,
                 PRIMARY KEY("order_id")
 );""")
 
@@ -153,11 +160,6 @@ class Sqlite3Storage(Storage):
             row['order_id']: StarsOrder.model_validate(dict(row))
             for row in await cursor.fetchall()
         }
-
-    async def reset_checking_username_status(self) -> None:
-        await self.raw_query(
-            'UPDATE orders SET status = "WAITING_FOR_USERNAME" WHERE status = "CHECKING_USERNAME"'
-        )
 
     async def raw_query(
         self,

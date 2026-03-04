@@ -1,125 +1,90 @@
 from __future__ import annotations
 
+import re
 import asyncio
-import logging
 from typing import TYPE_CHECKING
 from itertools import chain
 from collections import defaultdict
 
 from funpaybotengine import Router
-from funpaybotengine.dispatching import OrderEvent
-
+from autostars.src.logger import logger
 from autostars.src.exceptions import FragmentResponseError
-from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
+from autostars.src.autostars_provider import AutostarsProvider
 
 from funpayhub.lib.translater import _ru
-from funpayhub.lib.hub.text_formatters.category import InCategory
 
-from funpayhub.app.formatters import GeneralFormattersCategory
+from .utils import extract_stars_orders
 
 
 if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
-    from autostars.src.plugin import AutostarsPlugin
-    from autostars.src.storage import Storage
-    from funpaybotengine.runner import EventsStack
-    from autostars.src.properties import AutostarsProperties
-    from autostars.src.fragment_api import FragmentAPI
     from funpaybotengine.types import Message
-    from funpayhub.lib.plugin import LoadedPlugin
+    from funpaybotengine.runner import EventsStack
+    from autostars.src.callbacks import Callbacks
+    from autostars.src.fragment_api import FragmentAPI
 
     from funpayhub.app.main import FunPayHub as FPH
 
 
-from autostars.src.funpay.utils import extract_stars_orders
-
-
 router = Router(name='autostars')
-logger = logging.getLogger('funpayhub.com_github_qvvonk_funpayhub_autostars_plugin')
+username_re = re.compile(r'@?[a-zA-Z0-9_]{4,32}')
+orderid_re = re.compile(r'[A-Z0-9]{8}')
 
 
-async def check_username(order: StarsOrder, api: FragmentAPI) -> StarsOrder:
-    for attempt in range(3):
+_CHECK_USERNAME_ERRORS = {
+    'no telegram users found.': ErrorTypes.USERNAME_NOT_FOUND,
+    'please enter a username assigned to a user.': ErrorTypes.NOT_USER_USERNAME,
+}
+
+
+async def check_username(o: StarsOrder, api: FragmentAPI) -> StarsOrder:
+    for i in range(3):
         try:
-            r = await api.search_stars_recipient(order.telegram_username)
-            order.status = StarsOrderStatus.READY
-            order.recipient_id = r.found.recipient
-            return order
-        except FragmentResponseError:
-            order.status = StarsOrderStatus.WAITING_FOR_USERNAME
-            return order
-        except Exception:
-            logger.warning(
-                'Не удалось проверить Telegram username %s. Попытка: %d/3.',
-                order.telegram_username,
-                attempt + 1,
-                exc_info=True,
+            r = await api.search_stars_recipient(o.telegram_username)
+            o.status, o.recipient_id = StarsOrderStatus.READY, r.found.recipient
+            return o
+        except FragmentResponseError as e:
+            o.status = StarsOrderStatus.WAITING_FOR_USERNAME
+            o.error = _CHECK_USERNAME_ERRORS.get(
+                e.error_text.lower(),
+                ErrorTypes.UNABLE_TO_FETCH_USERNAME
             )
+            return o
+        except Exception:
+            logger.warning('Ошибка проверки @%s (%d).', o.telegram_username, i + 1, exc_info=True)
             await asyncio.sleep(1)
-    order.status = StarsOrderStatus.ERROR
-    order.error = ErrorTypes.UNABLE_TO_FETCH_USERNAME
-    order.retries_left = 0
-    return order
+    o.status = StarsOrderStatus.WAITING_FOR_USERNAME
+    o.error = ErrorTypes.UNABLE_TO_FETCH_USERNAME
+    return o
 
 
-async def check_usernames(
-    orders: list[StarsOrder],
-    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]
-) -> None:
+async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider, cbs: Callbacks):
     checked: dict[StarsOrderStatus, list[StarsOrder]] = defaultdict(list)
-    to_check: list[StarsOrder] = []
-    api = plugin.plugin.fragment_api_provider.api
+    storage = provider.storage
 
+    to_check: list[StarsOrder] = []
     for order in orders:
-        if not order.telegram_username:
+        if not order.telegram_username or not username_re.fullmatch(order.telegram_username):
             order.status = StarsOrderStatus.WAITING_FOR_USERNAME
+            order.error = ErrorTypes.INVALID_USERNAME
             checked[order.status].append(order)
-        elif api is None:
-            order.status = StarsOrderStatus.ERROR
+        elif provider.fragment is None:
+            order.status = StarsOrderStatus.WAITING_FOR_USERNAME
             order.error = ErrorTypes.FRAGMENT_API_NOT_PROVIDED
             checked[order.status].append(order)
         else:
             to_check.append(order)
 
-    for i in await asyncio.gather(*(check_username(i, api) for i in to_check)):
+    r = await asyncio.gather(*(check_username(i, provider.fragment) for i in to_check))
+    for i in r:
         checked[i.status].append(i)
-    await plugin.plugin.storage.add_or_update_orders(*chain(*checked.values()))
+    await storage.add_or_update_orders(*chain(*checked.values()))
 
-    # temp
-    for i in checked[StarsOrderStatus.WAITING_FOR_USERNAME]:
-        asyncio.create_task(on_username_not_found(i, plugin))
-    # todo: send notification in chat if error occurred while fetching username
-
-
-async def on_username_not_found(
-    order: StarsOrder,
-    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
-) -> None:
-    if not plugin.properties.messages.username_not_found_message.value:
-        return
-
-    try:
-        pack = await plugin.plugin.hub.funpay.text_formatters.format_text(
-            text=plugin.properties.messages.username_not_found_message.value,
-            context=StarsOrderFormatterContext(stars_order=order),
-            query=InCategory(StarsOrderCategory).or_(InCategory(GeneralFormattersCategory)),
+    if checked[StarsOrderStatus.WAITING_FOR_USERNAME]:
+        asyncio.create_task(
+            cbs.on_username_check_error(*checked[StarsOrderStatus.WAITING_FOR_USERNAME]),
         )
-    except Exception:
-        plugin.plugin.logger.error(
-            _ru('Ошибка генерации сообщения о неверном telegram юзернейме.'),
-            exc_info=True,
-        )
-        return
-
-    try:
-        await plugin.plugin.hub.funpay.send_messages_stack(pack, order.funpay_chat_id)
-    except Exception:
-        plugin.plugin.logger.error(
-            _ru('Не удалось отправить сообщение о неверном telegram юзернейме.'),
-            exc_info=True,
-        )
-        return
 
 
 @router.on_new_events_pack(
@@ -129,62 +94,42 @@ async def on_username_not_found(
 async def sale_orders(
     events_stack: EventsStack,
     hub: FPH,
-    autostars_storage: Storage,
-    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
+    autostars_provider: AutostarsProvider,
+    autostars_callbacks: Callbacks,
 ) -> None:
-    if not (stars_orders := await extract_stars_orders(events_stack.events, hub.instance_id)):
+    orders = await extract_stars_orders(events_stack.events, hub.instance_id)
+    if not orders:
         return
 
-    logger.info(
-        _ru('Добавляю данные о заказах %s в базу данных.'),
-        [i.order_id for i in stars_orders],
-    )
+    logger.info(_ru('Добавляю данные о заказах %s в базу данных.'), [i.order_id for i in orders])
 
-    await autostars_storage.add_or_update_orders(*stars_orders)
-    asyncio.create_task(check_usernames(stars_orders, plugin))
+    await autostars_provider.storage.add_or_update_orders(*orders)
+    asyncio.create_task(check_usernames(orders, autostars_provider, autostars_callbacks))
 
 
-@router.on_new_message(
-    lambda message: message.text and message.text.startswith('/stars '),
-    as_task=True,
-)
-async def update_username(
+@router.on_new_message(lambda message: message.text.startswith('/stars'))
+async def update_order_username(
     message: Message,
-    autostars_storage: Storage,
+    autostars_provider: AutostarsProvider,
     hub: FPH,
-    plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
-) -> None:
+    autostars_callbacks: Callbacks,
+):
     args = message.text.split(' ')[1:]
     if len(args) < 2:
         return
 
-    order_id, telegram_username = args[:2]
-    if not (order := await autostars_storage.get_order(order_id)):
+    order_id, username = args[0], args[1].replace('@', '')
+
+    order = await autostars_provider.storage.get_order(order_id)
+    if not order or order.funpay_chat_id != message.chat_id:
         return
 
-    if order.funpay_chat_id != message.chat_id:
+    if order.hub_instance != hub.instance_id and not message.from_me:
         return
 
-    if order.status != StarsOrderStatus.WAITING_FOR_USERNAME or order.hub_instance != hub.instance_id:
+    if order.status is not StarsOrderStatus.WAITING_FOR_USERNAME:
         return
 
-    order.telegram_username = telegram_username
-    order.status = StarsOrderStatus.CHECKING_USERNAME
-    await autostars_storage.add_or_update_order(order)
-    await check_usernames([order], plugin)
-
-
-@router.on_sale_refunded()
-@router.on_sale_partially_refunded()
-async def mark_as_refunded(event: OrderEvent, autostars_storage: Storage) -> None:
-    preview = await event.get_order_preview()
-
-    order = await autostars_storage.get_order(preview.order_id)
-    if not order:
-        return
-
-    if order.status not in [StarsOrderStatus.READY, StarsOrderStatus.WAITING_FOR_USERNAME]:
-        return
-
-    order.status = StarsOrderStatus.REFUNDED
-    await autostars_storage.add_or_update_order(order)
+    order.telegram_username = username
+    await autostars_provider.storage.add_or_update_orders(order)
+    asyncio.create_task(check_usernames([order], autostars_provider, autostars_callbacks))
