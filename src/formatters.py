@@ -112,7 +112,7 @@ class AutostarsUsernameFormatter(
         super().__init__(context, *args)
 
     def format(self) -> str:
-        return DELIMETER.join(self.context.stars_order.telegram_username) or ''
+        return DELIMETER.join(str(self.context.stars_order.telegram_username)) or ''
 
 
 class AutostarsStarsAmountFormatter(
