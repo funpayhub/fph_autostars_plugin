@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-__all__ = ['StarsOrderMenuContext']
+__all__ = ['StarsOrderMenuContext', 'OldOrdersMenuContext']
 
 
 from typing import TYPE_CHECKING
@@ -17,3 +17,13 @@ if TYPE_CHECKING:
 @dataclass(kw_only=True)
 class StarsOrderMenuContext(MenuContext):
     stars_order: StarsOrder
+
+
+@dataclass(kw_only=True)
+class OldOrdersMenuContext(MenuContext):
+    waiting_username_orders: list[StarsOrder]
+    errored_orders: list[StarsOrder]
+
+    @property
+    def total_len(self) -> int:
+        return len(self.waiting_username_orders) + len(self.errored_orders)

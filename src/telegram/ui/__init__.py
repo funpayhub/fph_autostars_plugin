@@ -4,7 +4,7 @@ from __future__ import annotations
 __all__ = ['BUILDERS']
 
 
-from .builders import StarsOrderInfoMenuBuilder, StatusMenuBuilder
+from .builders import StarsOrderInfoMenuBuilder, StatusMenuBuilder, OldOrdersNotificationMenuBuilder
 
 
-BUILDERS = [StarsOrderInfoMenuBuilder, StatusMenuBuilder]
+BUILDERS = [StarsOrderInfoMenuBuilder, StatusMenuBuilder, OldOrdersNotificationMenuBuilder]

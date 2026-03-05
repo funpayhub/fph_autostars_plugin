@@ -18,6 +18,7 @@ import time
 from funpayhub.app.plugin import Plugin
 
 from .fph import router as fph_router
+from .telegram.ui.context import OldOrdersMenuContext
 from .ton import Wallet
 from .other import NotificationChannels
 from .funpay import funpay_router
@@ -32,7 +33,7 @@ from .fragment_api import FragmentAPI
 from .autostars_provider import AutostarsProvider
 from .transferer_service import TransferrerService
 from .telegram.ui.modifications import MODIFICATIONS
-from .types.enums import StarsOrderStatus, ErrorTypes
+from .types.enums import StarsOrderStatus as SOS, ErrorTypes
 
 if TYPE_CHECKING:
     from aiogram import Router as TGRouter
@@ -176,6 +177,7 @@ class AutostarsPlugin(Plugin):
         )
         task = asyncio.create_task(self.transfer_service.main_loop())
         task.add_done_callback(self.service_done_callback)
+        await self.check_old_orders()
 
     def service_done_callback(self, task: asyncio.Task) -> None:
         try:
@@ -206,7 +208,7 @@ class AutostarsPlugin(Plugin):
         orders_dict = await self.provider.storage.get_orders(
             instance_id=self.hub.instance_id,
             same_instance=False,
-            status=StarsOrderStatus.TRANSFERRING,
+            status=SOS.TRANSFERRING,
         )
         orders = {i for i in orders_dict.values() if i.in_msg_hash}
         if not orders:
@@ -231,12 +233,12 @@ class AutostarsPlugin(Plugin):
 
         errored = {i for i in orders if i not in done}
         for order, trans in done.items():
-            order.status = StarsOrderStatus.DONE
+            order.status = SOS.DONE
             order.error = None
             order.transaction_hash = trans.hash
 
         for order in errored:
-            order.status = StarsOrderStatus.ERROR
+            order.status = SOS.ERROR
             order.error = ErrorTypes.TRANSACTION_TIMEOUT_ERROR
 
         notification_parts = [f'✅ Проверка незавершенных транзакций завершена.']
@@ -259,13 +261,26 @@ class AutostarsPlugin(Plugin):
         await self.provider.storage.add_or_update_orders(*chain(done.keys(), errored))
 
     async def check_old_orders(self):
-        orders_dict = await self.provider.storage.get_orders(
+        o_dict = await self.provider.storage.get_orders(
             instance_id=self.hub.instance_id,
             same_instance=False,
-            status=[StarsOrderStatus.WAITING_FOR_USERNAME, StarsOrderStatus.ERROR],
+            status=[SOS.WAITING_FOR_USERNAME, SOS.ERROR],
         )
 
-        if not orders_dict:
+        orders = {i for i in o_dict.values() if not (i.status is SOS.ERROR and not i.retries_left)}
+
+        if not orders:
             return
 
-        ... # todo: send notification
+        menu = await OldOrdersMenuContext(
+            menu_id='autostars:old_orders_notification',
+            chat_id=-1,
+            errored_orders=[i for i in orders if i.status is SOS.ERROR],
+            waiting_username_orders=[i for i in orders if i.status is SOS.WAITING_FOR_USERNAME],
+        ).build_menu(self.hub.telegram.ui_registry)
+
+        self.hub.telegram.send_notification(
+            NotificationChannels.INFO,
+            text=menu.total_text,
+            reply_markup=menu.total_keyboard(convert=True),
+        )

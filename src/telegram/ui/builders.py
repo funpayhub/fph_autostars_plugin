@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext
 from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import StripAndNavigationFinalizer
 
-from autostars.src.telegram.ui.context import StarsOrderMenuContext
+from autostars.src.telegram.ui.context import StarsOrderMenuContext, OldOrdersMenuContext
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
@@ -109,5 +109,40 @@ class StatusMenuBuilder(
             menu.main_text += f'✅ <b>Fragment: подключен.</b>\n'
         else:
             menu.main_text += '❌ <b>Fragment: не подключен.</b>\n'
+
+        return menu
+
+
+class OldOrdersNotificationMenuBuilder(
+    MenuBuilder,
+    menu_id='autostars:old_orders_notification',
+    context_type=OldOrdersMenuContext
+):
+    async def build(self, ctx: OldOrdersMenuContext) -> Menu:
+        menu = Menu(finalizer=StripAndNavigationFinalizer())
+
+        menu.main_text = (
+            f'<b>⚠️ Обнаружено {ctx.total_len} заказов, которые были инициированы во время'
+            f' предыдущего запуска FunPayHub, но так и не были завершены.</b>\n\n'
+        )
+
+        if ctx.waiting_username_orders:
+            menu.main_text += (
+                f'⏳ {len(ctx.waiting_username_orders)} заказов были инициированы, '
+                f'но с переданные с ними Telegram юзернеймы невалидны или не найдены, '
+                f'поэтому по ним ожидается ввод валидного Telegram юзернейма от пользователя.\n\n'
+            )
+
+        if ctx.errored_orders:
+            menu.main_text += (
+                f'⁉️ {len(ctx.errored_orders)} заказов завершились ошибкой, но их кол-во попыток '
+                f'ещё не исчерпано.\n\n'
+            )
+
+        menu.main_text += (
+            '🔘 Выберите, что делать с заказами.\n'
+            'Вы можете ничего с ними не делать, но тогда AutoStars будет их игнорировать, '
+            'а это уведомление появится снова при следующем запуске.'
+        )
 
         return menu
