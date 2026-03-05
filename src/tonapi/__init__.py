@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from .methods import GetSeqno, GetWallet, SendMessage, GetTransactionByMessageHash
 from .session import Session
+import time
 
 
 if TYPE_CHECKING:
@@ -28,6 +29,17 @@ class TonAPI:
 
     async def get_transaction_by_msg_hash(self, hash: str) -> Transaction:
         return await self.session.make_request(GetTransactionByMessageHash(message_hash=hash))
+
+    async def wait_for_transfer(self, msg_hash: str, valid_until: int) -> Transaction:
+        while True:
+            request_time = time.time()
+            try:
+                return await self.get_transaction_by_msg_hash(msg_hash)
+            except Exception:  # todo: log unexpected exceptions
+                pass
+
+            if request_time > valid_until:
+                raise TimeoutError('Timeout waiting for transfer.')
 
     @property
     def session(self) -> Session:

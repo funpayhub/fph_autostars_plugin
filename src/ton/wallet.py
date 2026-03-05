@@ -156,13 +156,4 @@ class Wallet:
         return msg
 
     async def wait_for_transfer(self, msg_hash: str, valid_until: int) -> Transaction:
-        valid_until += 60
-        while True:
-            request_time = time.time()
-            try:
-                return await self.provider.tonapi.get_transaction_by_msg_hash(msg_hash)
-            except Exception:  # todo: log unexpected exceptions
-                pass
-
-            if request_time > valid_until:
-                raise TimeoutError('Timeout waiting for transfer.')
+        return await self.provider.tonapi.wait_for_transfer(msg_hash, valid_until)

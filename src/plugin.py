@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import traceback
+from itertools import chain
 from typing import TYPE_CHECKING
 
 from pytoniq import LiteClient
@@ -12,6 +13,7 @@ from aiogram.methods import SendDocument
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.properties import ListParameter
 from funpayhub.lib.translater import _ru
+import time
 
 from funpayhub.app.plugin import Plugin
 
@@ -30,7 +32,7 @@ from .fragment_api import FragmentAPI
 from .autostars_provider import AutostarsProvider
 from .transferer_service import TransferrerService
 from .telegram.ui.modifications import MODIFICATIONS
-
+from .types.enums import StarsOrderStatus, ErrorTypes
 
 if TYPE_CHECKING:
     from aiogram import Router as TGRouter
@@ -41,6 +43,8 @@ if TYPE_CHECKING:
     from funpayhub.lib.hub.text_formatters import Formatter
 
     from funpayhub.app.dispatching import Router as HubRouter
+    from .tonapi.types import Transaction
+    from .types import StarsOrder
 
 
 class AutostarsPlugin(Plugin):
@@ -48,7 +52,7 @@ class AutostarsPlugin(Plugin):
         super().__init__(*args)
 
         self.api = TonAPI()
-        self.provider = None
+        self.provider: AutostarsProvider | None = None
         self.callbacks = Callbacks(self)
 
         self.props: AutostarsProperties | None = None
@@ -120,6 +124,8 @@ class AutostarsPlugin(Plugin):
 
         storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
         self.provider = AutostarsProvider(TonAPI(), storage)
+
+        await self.check_old_transferring_orders()
 
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:
             self.logger.info(_ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
@@ -195,3 +201,71 @@ class AutostarsPlugin(Plugin):
                 ),
             )
             self.hub.telegram.send_notification_from_obj(NotificationChannels.ERROR, call)
+
+    async def check_old_transferring_orders(self) -> None:
+        orders_dict = await self.provider.storage.get_orders(
+            instance_id=self.hub.instance_id,
+            same_instance=False,
+            status=StarsOrderStatus.TRANSFERRING,
+        )
+        orders = {i for i in orders_dict.values() if i.in_msg_hash}
+        if not orders:
+            return
+
+        self.hub.telegram.send_notification(
+            NotificationChannels.INFO,
+            text=f'<b>⚠️ Найдены незавершенные транзакции с прошлого запуска FunPay Hub.\n'
+                 f'Заказы: {", ".join(f"<code>{i.order_id}</code>" for i in orders)}.\n\n'
+                 f'⌛ Выполняю проверку их статуса. Это может занять какое-то время (зависит от кол-ва заказов). '
+                 f'Пока проверка не выполнится, сервис не будет запущен.</b>'
+        )
+
+        timeout = int(time.time() + 10)  # todo: valid_until from db
+        done: dict[StarsOrder, Transaction] = {}
+        for i in {i.in_msg_hash for i in orders}:
+            try:
+                tr = await self.provider.tonapi.wait_for_transfer(i, timeout)
+                done.update({j: tr for j in orders if j.in_msg_hash == i})
+            except TimeoutError:
+                pass
+
+        errored = {i for i in orders if i not in done}
+        for order, trans in done.items():
+            order.status = StarsOrderStatus.DONE
+            order.error = None
+            order.transaction_hash = trans.hash
+
+        for order in errored:
+            order.status = StarsOrderStatus.ERROR
+            order.error = ErrorTypes.TRANSACTION_TIMEOUT_ERROR
+
+        notification_parts = [f'✅ Проверка незавершенных транзакций завершена.']
+        if done:
+            notification_parts.append(
+                f'✅ Подтверждены транзакции по заказам: '
+                f'{', '.join(f'<code>{i.order_id}</code>' for i in done)}.'
+            )
+        if errored:
+            notification_parts.append(
+                f'❌ Не удалось подтвердить транзакции по заказам: '
+                f'{', '.join(f'<code>{i.order_id}</code>' for i in errored)}.'
+            )
+
+        self.hub.telegram.send_notification(
+            NotificationChannels.INFO,
+            text='<b>' + '\n\n'.join(notification_parts) + '</b>',
+        )
+
+        await self.provider.storage.add_or_update_orders(*chain(done.keys(), errored))
+
+    async def check_old_orders(self):
+        orders_dict = await self.provider.storage.get_orders(
+            instance_id=self.hub.instance_id,
+            same_instance=False,
+            status=[StarsOrderStatus.WAITING_FOR_USERNAME, StarsOrderStatus.ERROR],
+        )
+
+        if not orders_dict:
+            return
+
+        ... # todo: send notification

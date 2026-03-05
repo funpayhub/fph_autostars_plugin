@@ -35,6 +35,8 @@ class Storage(ABC):
         self,
         *order_ids: str,
         status: StarsOrderStatus | list[StarsOrderStatus] | None = None,
+        instance_id: str | None = None,
+        same_instance: bool = True,
     ) -> dict[str, StarsOrder]: ...
 
     @abstractmethod
@@ -120,6 +122,8 @@ class Sqlite3Storage(Storage):
         self,
         *order_ids: str,
         status: StarsOrderStatus | list[StarsOrderStatus] | None = None,
+        instance_id: str | None = None,
+        same_instance: bool = True,
     ) -> dict[str, StarsOrder]:
         sql = 'SELECT * FROM orders'
         conditions = []
@@ -138,6 +142,10 @@ class Sqlite3Storage(Storage):
             else:
                 conditions.append('status = ?')
                 params.append(status.value)
+
+        if instance_id is not None:
+            conditions.append('hub_instance = ?' if same_instance else 'hub_instance != ?')
+            params.append(instance_id)
 
         if conditions:
             sql += ' WHERE ' + ' AND '.join(conditions)
