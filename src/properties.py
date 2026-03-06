@@ -134,7 +134,7 @@ class MessagesProperties(Properties):
                 name='Невалидный юзернейм',
                 description='Сообщение, которое будет отправлено в чат покупателю, если указанный юзернейм невалиден.',
                 default_value=(
-                    '❌ $order<counterparty.username>, telegram юзернейм @$autostars_username невалиден.\n\n'
+                    '❌ $order<counterparty.username>, telegram юзернейм по заказу $order<id> невалиден.\n\n'
                     'Проверьте правильность введенного юзернейма и введите команду:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
