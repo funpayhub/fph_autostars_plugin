@@ -21,7 +21,8 @@ from .enums import ErrorTypes, StarsOrderType, StarsOrderStatus
 
 
 STARS_AMOUNT_RE = re.compile('^(\d+) (?:звёзд|Stars)(?:,|$)')
-PCS_RE = re.compile(r'(?:^|, )(\d+) (?:шт|pcs)\.(?:,|$)')
+PCS_RE = re.compile(r', (\d+) (?:шт|pcs)\.(?:,|$)')
+VALID_USERNAME_RE = re.compile(r', @?([a-zA-Z0-9_]{4,32}),?')
 
 
 class StarsOrder(BaseModel):
@@ -80,10 +81,10 @@ class StarsOrder(BaseModel):
 
     @staticmethod
     def get_telegram_username(order_title: str) -> str | None:
-        username = order_title.split(',', 2)
-        if len(username) > 1:
-            return username[1].strip()
-        return None
+        username = VALID_USERNAME_RE.search(order_title)
+        if not username:
+            return None
+        return username.group(1)
 
     @property
     def sale_event(self) -> NewSaleEvent:
