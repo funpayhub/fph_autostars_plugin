@@ -142,20 +142,20 @@ class AutostarsPlugin(Plugin):
         await self.check_old_transferring_orders()
 
         if self.props.wallet.cookies.value and self.props.wallet.fragment_hash.value:
-            self.logger.info(_ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
+            self.logger.info(ru('Cookie и Hash найдены в настройках. Создаю FragmentAPI.'))
             self.provider._fragment = FragmentAPI(
                 self.props.wallet.cookies.value,
                 self.props.wallet.fragment_hash.value,
             )
 
         if self.props.wallet.mnemonics.value:
-            self.logger.info(_ru('Мнемоники найдены в настройках. Создаю кошелек.'))
+            self.logger.info(ru('Мнемоники найдены в настройках. Создаю кошелек.'))
             try:
                 self.provider._wallet = await Wallet.from_mnemonics(
                     self.props.wallet.mnemonics.value,
                     self.provider,
                 )
-                self.logger.info(_ru('Кошелек %s подключен.'), self.provider.wallet.address)
+                self.logger.info(ru('Кошелек %s подключен.'), self.provider.wallet.address)
                 self.hub.telegram.send_notification(
                     NotificationChannels.INFO,
                     self.hub.translater.translate(
@@ -168,7 +168,7 @@ class AutostarsPlugin(Plugin):
                 )
 
             except Exception:
-                self.logger.error(_ru('Ошибка подключения к TON кошельку.'), exc_info=True)
+                self.logger.error(ru('Ошибка подключения к TON кошельку.'), exc_info=True)
                 self.hub.telegram.send_notification(
                     NotificationChannels.ERROR,
                     self.hub.translater.translate(
@@ -274,20 +274,9 @@ class AutostarsPlugin(Plugin):
         await self.provider.storage.add_or_update_orders(*chain(done.keys(), errored))
 
     async def check_old_orders(self):
-        o_dict = await self.provider.storage.get_orders(
-            instance_id=self.hub.instance_id,
-            same_instance=False,
-            status=[SOS.WAITING_FOR_USERNAME, SOS.ERROR, SOS.UNPROCESSED, SOS.READY],
-        )
-
-        orders = {i for i in o_dict.values() if not (i.status is SOS.ERROR and not i.retries_left)}
-
-        if not orders:
+        orders_dict = await self.provider.storage.get_old_orders(self.hub.instance_id)
+        if not orders_dict:
             return
-
-        orders_dict = defaultdict(list)
-        for i in orders:
-            orders_dict[i.status].append(i)
 
         menu = await OldOrdersMenuContext(
             menu_id='autostars:old_orders_notification',
