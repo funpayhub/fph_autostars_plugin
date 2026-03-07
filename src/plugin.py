@@ -6,7 +6,6 @@ import logging
 import traceback
 from typing import TYPE_CHECKING
 from itertools import chain
-from collections import defaultdict
 
 from pytoniq import LiteClient
 from aiogram.types import BufferedInputFile
@@ -15,17 +14,17 @@ from aiogram.methods import SendDocument
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.properties import ListParameter
 from funpayhub.lib.translater import ru
-from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
 
 from funpayhub.app.plugin import Plugin
 
 from .fph import router as fph_router
+from .telegram.callbacks import CheckOldOrders
 from .ton import Wallet
 from .other import NotificationChannels
 from .funpay import funpay_router
 from .tonapi import TonAPI
 from .storage import Sqlite3Storage
-from .telegram import ROUTERS
+from .telegram.routers import ROUTERS
 from .callbacks import Callbacks
 from .formatters import FORMATTERS, StarsOrderCategory
 from .properties import AutostarsProperties
@@ -285,15 +284,7 @@ class AutostarsPlugin(Plugin):
             waiting_username_orders=len(orders_dict[SOS.WAITING_FOR_USERNAME]),
             ready_orders=len(orders_dict[SOS.READY]),
             unprocessed_orders=len(orders_dict[SOS.UNPROCESSED]),
-            callback_override=OpenMenu(
-                menu_id='autostars:old_orders_notification',
-                context_data={
-                    'errored_orders': len(orders_dict[SOS.ERROR]),
-                    'waiting_username_orders': len(orders_dict[SOS.WAITING_FOR_USERNAME]),
-                    'ready_orders': len(orders_dict[SOS.READY]),
-                    'unprocessed_orders': len(orders_dict[SOS.UNPROCESSED]),
-                },
-            ),
+            callback_override=CheckOldOrders()
         ).build_menu(self.hub.telegram.ui_registry)
 
         self.hub.telegram.send_notification(
