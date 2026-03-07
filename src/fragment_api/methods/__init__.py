@@ -9,4 +9,8 @@ __all__ = [
 ]
 
 from autostars.src.fragment_api.methods.base import FragmentMethod
-from autostars.src.fragment_api.methods.methods import GetBuyStarsLink, InitBuyStarsRequest, SearchStarsRecipient
+from autostars.src.fragment_api.methods.methods import (
+    GetBuyStarsLink,
+    InitBuyStarsRequest,
+    SearchStarsRecipient,
+)

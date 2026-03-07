@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import html
-
-from autostars.src.types.enums import StarsOrderStatus as SOS
 from typing import TYPE_CHECKING
 
+from autostars.src.types.enums import StarsOrderStatus as SOS
+from autostars.src.telegram.ui.context import OldOrdersMenuContext, StarsOrderMenuContext
+
+from funpayhub.lib.translater import translater
 from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext
 from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import StripAndNavigationFinalizer
 
-from autostars.src.telegram.ui.context import StarsOrderMenuContext, OldOrdersMenuContext
-from funpayhub.lib.translater import translater
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
@@ -46,7 +46,10 @@ class StarsOrderInfoMenuBuilder(
             hub_instance=ctx.stars_order.hub_instance,
             attempts=ctx.stars_order.retries_left,
         )
-        if ctx.stars_order.status in [SOS.ERROR, SOS.WAITING_FOR_USERNAME] and ctx.stars_order.error is not None:
+        if (
+            ctx.stars_order.status in [SOS.ERROR, SOS.WAITING_FOR_USERNAME]
+            and ctx.stars_order.error is not None
+        ):
             menu.main_text += f'<b><i>{ctx.stars_order.error.desc}</i></b>\n'
 
         menu.main_text += '\n'
@@ -67,7 +70,7 @@ class StarsOrderInfoMenuBuilder(
         if ctx.stars_order.in_msg_hash:
             menu.main_text += (
                 '#️⃣ <b><i>Hash полезной нагрузки:</i></b> <code>{hash}</code>\n'.format(
-                    hash=ctx.stars_order.in_msg_hash
+                    hash=ctx.stars_order.in_msg_hash,
                 )
             )
 
@@ -89,13 +92,13 @@ class StarsOrderInfoMenuBuilder(
 class StatusMenuBuilder(
     MenuBuilder,
     menu_id='autostars:status',
-    context_type=MenuContext
+    context_type=MenuContext,
 ):
     async def build(
         self,
         ctx: MenuContext,
         autostars_provider: AutostarsProvider,
-        autostars_service: TransferrerService
+        autostars_service: TransferrerService,
     ) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
 
@@ -105,12 +108,14 @@ class StatusMenuBuilder(
             menu.main_text = '✅ <b>Статус сервиса: активен.</b>\n'
 
         if autostars_provider.wallet is not None:
-            menu.main_text += f'✅ <b>TON кошелек: <code>{autostars_provider.wallet.address}</code>.</b>\n'
+            menu.main_text += (
+                f'✅ <b>TON кошелек: <code>{autostars_provider.wallet.address}</code>.</b>\n'
+            )
         else:
             menu.main_text += '❌ <b>TON кошелек: не подключен.</b>\n'
 
         if autostars_provider.fragment is not None:
-            menu.main_text += f'✅ <b>Fragment: подключен.</b>\n'
+            menu.main_text += '✅ <b>Fragment: подключен.</b>\n'
         else:
             menu.main_text += '❌ <b>Fragment: не подключен.</b>\n'
 
@@ -120,26 +125,26 @@ class StatusMenuBuilder(
 class OldOrdersNotificationMenuBuilder(
     MenuBuilder,
     menu_id='autostars:old_orders_notification',
-    context_type=OldOrdersMenuContext
+    context_type=OldOrdersMenuContext,
 ):
     async def build(self, ctx: OldOrdersMenuContext) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
         menu.main_text = ru(
             '<b>⚠️ Обнаружены заказы (<code>{orders_amount}</code>), которые были инициированы во время'
             ' предыдущего запуска FunPayHub, но так и не были завершены.</b>\n\n',
-            orders_amount=ctx.total_len
+            orders_amount=ctx.total_len,
         )
 
         if ctx.unprocessed_orders:
             menu.main_text += ru(
                 '<b>🔘 Необработанные заказы (<code>{orders_amount}</code>)</b> были сохранены '
                 'в базу данных, но для них даже не была выполнена проверка Telegram юзернейма.\n\n',
-                orders_amount=ctx.unprocessed_orders
+                orders_amount=ctx.unprocessed_orders,
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_unprocessed_orders',
                 text=ru('🔘 Необработанные заказы'),
-                callback_data='dummy'
+                callback_data='dummy',
             )
 
         if ctx.waiting_username_orders:
@@ -147,42 +152,42 @@ class OldOrdersNotificationMenuBuilder(
                 '<b>⏳ Заказы, ожидающие ввод валидного Telegram юзернейма (<code>{orders_amount}</code>),</b> '
                 'были созданы, но юзернеймы, которые передали покупатели, либо невалидны, '
                 'либо не были найдены.\n\n',
-                orders_amount=ctx.waiting_username_orders
+                orders_amount=ctx.waiting_username_orders,
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_waiting_username_orders',
                 text=ru('⏳ Ожидающие юзернейм'),
-                callback_data='dummy'
+                callback_data='dummy',
             )
 
         if ctx.ready_orders:
             menu.main_text += ru(
                 '<b>⚡ Заказы, готовые к выполнению (<code>{orders_amount}</code>)</b>, '
                 'полностью валидны, но до них так и не дошла очередь.\n\n',
-                orders_amount=ctx.ready_orders
+                orders_amount=ctx.ready_orders,
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_ready_orders',
                 text=ru('⚡ Готовые к выполнению'),
-                callback_data='dummy'
+                callback_data='dummy',
             )
 
         if ctx.errored_orders:
             menu.main_text += ru(
                 '<b>⁉️ Заказы, по которым не удалось выполнить транзакцию '
                 '(<code>{orders_amount}</code>)</b>, но у них есть еще несколько попыток.\n\n',
-                orders_amount=ctx.errored_orders
+                orders_amount=ctx.errored_orders,
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_errored_orders',
                 text=ru('⁉️ Заказы с ошибкой'),
-                callback_data='dummy'
+                callback_data='dummy',
             )
 
         menu.main_text += ru(
             '🛠️ Выберите, что делать с заказами.\n'
             'Вы можете ничего с ними не делать, но тогда плагин будет их игнорировать, '
-            'а это уведомление появится снова при следующем запуске.'
+            'а это уведомление появится снова при следующем запуске.',
         )
 
         return menu

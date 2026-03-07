@@ -5,16 +5,19 @@ from typing import TYPE_CHECKING
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from autostars.src.telegram import states
 from autostars.src.types.enums import StarsOrderStatus
-from autostars.src.telegram.ui.context import StarsOrderMenuContext
+from autostars.src.autostars_provider import AutostarsProvider
+from autostars.src.telegram.ui.context import OldOrdersMenuContext, StarsOrderMenuContext
+
+from funpayhub.lib.translater import translater
 from funpayhub.lib.telegram.ui import MenuContext
-
 from funpayhub.lib.base_app.telegram.utils import delete_message
+from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
 
+from funpayhub.app.main import FunPayHub
 from funpayhub.app.telegram.ui.ids import MenuIds
 from funpayhub.app.telegram.ui.builders.context import StateUIContext
-
-from autostars.src.telegram import states
 
 
 if TYPE_CHECKING:
@@ -26,6 +29,7 @@ if TYPE_CHECKING:
 
 
 router = Router(name='autostars')
+ru = translater.translate
 
 
 async def _show_order_info(order_id: str, message: Message, storage: Storage, tg_ui: UIRegistry):
@@ -73,6 +77,39 @@ async def autostars_offer_info_from_state(
     await states.ViewingOrderInfo.clear(state)
     await _show_order_info(message.text, message, autostars_storage, tg_ui)
     delete_message(obj.state_message)
+
+
+@router.message(Command('stars_old_orders'))
+async def list_old_orders(
+    message: Message,
+    tg_ui: UIRegistry,
+    autostars_provider: AutostarsProvider,
+    hub: FunPayHub,
+):
+    orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
+    if not orders:
+        await message.answer(
+            ru('<b>✅ Нет незаконченных заказов с прошлых запусков.</b>'),
+        )
+        return
+
+    await OldOrdersMenuContext(
+        menu_id='autostars:old_orders_notification',
+        trigger=message,
+        errored_orders=len(orders[StarsOrderStatus.ERROR]),
+        waiting_username_orders=len(orders[StarsOrderStatus.WAITING_FOR_USERNAME]),
+        ready_orders=len(orders[StarsOrderStatus.READY]),
+        unprocessed_orders=len(orders[StarsOrderStatus.UNPROCESSED]),
+        callback_override=OpenMenu(
+            menu_id='autostars:old_orders_notification',
+            context_data={
+                'errored_orders': len(orders[StarsOrderStatus.ERROR]),
+                'waiting_username_orders': len(orders[StarsOrderStatus.WAITING_FOR_USERNAME]),
+                'ready_orders': len(orders[StarsOrderStatus.READY]),
+                'unprocessed_orders': len(orders[StarsOrderStatus.UNPROCESSED]),
+            },
+        ),
+    ).build_and_answer(tg_ui, message)
 
 
 @router.message(Command('stars_status'))

@@ -19,7 +19,10 @@ from funpayhub.app.telegram.ui.ids import MenuIds
 
 class AddFormattersMenuModification(MenuModification, modification_id='autostars:add_formatters'):
     async def filter(
-        self, ctx: NodeMenuContext, menu: Menu, properties: FunPayHubProperties
+        self,
+        ctx: NodeMenuContext,
+        menu: Menu,
+        properties: FunPayHubProperties,
     ) -> bool:
         plugin_props: AutostarsProperties = properties.plugin_properties.get_properties(
             ['com_github_qvvonk_funpayhub_autostars_plugin'],

@@ -3,11 +3,11 @@ from __future__ import annotations
 
 __all__ = ['TonAPI']
 
+import time
 from typing import TYPE_CHECKING
 
 from .methods import GetSeqno, GetWallet, SendMessage, GetTransactionByMessageHash
 from .session import Session
-import time
 
 
 if TYPE_CHECKING:

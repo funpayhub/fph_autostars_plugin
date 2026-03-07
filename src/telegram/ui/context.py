@@ -29,8 +29,8 @@ class OldOrdersMenuContext(MenuContext):
     @property
     def total_len(self) -> int:
         return (
-            self.unprocessed_orders +
-            self.waiting_username_orders +
-            self.ready_orders +
-            self.errored_orders
+            self.unprocessed_orders
+            + self.waiting_username_orders
+            + self.ready_orders
+            + self.errored_orders
         )

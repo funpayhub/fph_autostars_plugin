@@ -1,21 +1,25 @@
 from __future__ import annotations
+
+import asyncio
 from typing import TYPE_CHECKING
 
-
-from autostars.src.types import StarsOrder
-from funpayhub.app.dispatching.router import Router
 from autostars.src import events
 from autostars.src.other import NotificationChannels
-from funpayhub.lib.plugin import LoadedPlugin
-from autostars.src.formatters import StarsOrderFormatterContext, StarsOrderCategory
-from funpayhub.app.formatters import GeneralFormattersCategory
-from funpayhub.lib.hub.text_formatters.category import InCategory
+from autostars.src.types import StarsOrder
 from autostars.src.logger import logger
-import asyncio
+from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
+
+from funpayhub.lib.plugin import LoadedPlugin
+from funpayhub.lib.hub.text_formatters.category import InCategory
+
+from funpayhub.app.formatters import GeneralFormattersCategory
+from funpayhub.app.dispatching.router import Router
+
 
 if TYPE_CHECKING:
     from autostars.src.plugin import AutostarsPlugin
     from autostars.src.properties import AutostarsProperties
+
     from funpayhub.app.main import FunPayHub as FPH
 
 
@@ -49,8 +53,9 @@ async def on_username_not_found(self, order: StarsOrder) -> None:
             order,
             self.plugin.props.messages.username_not_found_message.value,
             'Telegram username not found',
-        )
+        ),
     )
+
 
 async def on_username_invalid(self, order: StarsOrder) -> None:
     asyncio.create_task(
@@ -58,7 +63,7 @@ async def on_username_invalid(self, order: StarsOrder) -> None:
             order,
             self.plugin.props.messages.invalid_username_message.value,
             'Invalid telegram username',
-        )
+        ),
     )
 
 
@@ -67,17 +72,18 @@ async def on_not_user_username(self, order: StarsOrder) -> None:
         self.default_hook(
             order,
             self.plugin.props.messages.not_user_username_message.value,
-            'Not user username'
-        )
+            'Not user username',
+        ),
     )
+
 
 async def on_username_fetch_error(self, order: StarsOrder) -> None:
     asyncio.create_task(
         self.default_hook(
             order,
             self.plugin.props.messages.failed_to_fetch_username_message.value,
-            'Error fetching telegram username'
-        )
+            'Error fetching telegram username',
+        ),
     )
 
 
@@ -93,7 +99,7 @@ async def send_success_telegram_notification(stars_orders: list[StarsOrder], hub
 async def send_funpay_message(
     stars_order: StarsOrder,
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
-    hub: FPH
+    hub: FPH,
 ):
     if not plugin.properties.messages.transaction_completed_message.value:
         return
@@ -102,5 +108,5 @@ async def send_funpay_message(
         hub,
         stars_order,
         plugin.properties.messages.transaction_completed_message.value,
-        'transaction_completed_message'
+        'transaction_completed_message',
     )

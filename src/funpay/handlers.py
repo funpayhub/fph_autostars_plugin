@@ -48,7 +48,7 @@ async def check_username(o: StarsOrder, api: FragmentAPI) -> StarsOrder:
             o.status = StarsOrderStatus.WAITING_FOR_USERNAME
             o.error = _CHECK_USERNAME_ERRORS.get(
                 e.error_text.lower(),
-                ErrorTypes.UNABLE_TO_FETCH_USERNAME
+                ErrorTypes.UNABLE_TO_FETCH_USERNAME,
             )
             return o
         except Exception:

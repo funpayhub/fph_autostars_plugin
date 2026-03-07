@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autostars.src.fragment_api.methods import GetBuyStarsLink, InitBuyStarsRequest, SearchStarsRecipient
+from autostars.src.fragment_api.methods import (
+    GetBuyStarsLink,
+    InitBuyStarsRequest,
+    SearchStarsRecipient,
+)
 from autostars.src.fragment_api.session import Session
 
 

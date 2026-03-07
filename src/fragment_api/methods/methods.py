@@ -3,9 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import Field, AliasChoices, computed_field, field_validator, field_serializer
-
-from autostars.src.fragment_api.methods.base import FragmentMethod
 from autostars.src.fragment_api.types import BuyStarsLink, BuyStarsResponse, RecipientResponse
+from autostars.src.fragment_api.methods.base import FragmentMethod
 
 
 class SearchStarsRecipient(FragmentMethod[RecipientResponse]):

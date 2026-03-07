@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import time
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from autostars.src.fragment_api import FragmentAPI
 from autostars.src.ton import Wallet
 from autostars.src.logger import logger
 from autostars.src.ton.wallet import Transfer
-from autostars.src.types.enums import ErrorTypes, StarsOrderStatus as SOS
-from typing import Any
+from autostars.src.types.enums import (
+    ErrorTypes,
+    StarsOrderStatus as SOS,
+)
+from autostars.src.fragment_api import FragmentAPI
 
 
 if TYPE_CHECKING:
@@ -52,7 +54,7 @@ class TransferrerService:
             wallet = self.provider.wallet
 
             if fragment_api is None or wallet is None:
-                logger.warning(f'Fragment API или кошелек не указаны.')
+                logger.warning('Fragment API или кошелек не указаны.')
                 continue
 
             orders = (await self.provider.storage.get_ready_orders(self.hub.instance_id)).values()
@@ -85,23 +87,27 @@ class TransferrerService:
         try:
             transferable_orders = await self.get_transferable_orders(orders_to_transfer, wallet)
         except Exception:
-            logger.error(f'Ошибка получения баланса TON кошелька.', exc_info=True)
+            logger.error('Ошибка получения баланса TON кошелька.', exc_info=True)
             await self.update_orders(
                 *orders_to_transfer.keys(),
                 status=SOS.ERROR,
-                error=ErrorTypes.GET_BALANCE_ERROR
+                error=ErrorTypes.GET_BALANCE_ERROR,
             )
             return
 
         if err := (orders_to_transfer.keys() - transferable_orders.keys()):
-            await self.update_orders(*err, status=SOS.ERROR, error=ErrorTypes.NOT_ENOUGH_TON, retries_left=0)
+            await self.update_orders(
+                *err, status=SOS.ERROR, error=ErrorTypes.NOT_ENOUGH_TON, retries_left=0
+            )
 
         if not transferable_orders:
             return
 
         await self.transfer_orders(wallet, transferable_orders)
 
-    async def stars_link(self, api: FragmentAPI, o: StarsOrder) -> tuple[StarsOrder, Transfer | None]:
+    async def stars_link(
+        self, api: FragmentAPI, o: StarsOrder
+    ) -> tuple[StarsOrder, Transfer | None]:
         try:
             req = await api.init_buy_stars_request(o.recipient_id, o.stars_amount)
             link = await api.get_buy_stars_link(req.request_id)
@@ -121,14 +127,16 @@ class TransferrerService:
 
     async def transfer_orders(self, wallet: Wallet, orders: dict[StarsOrder, Transfer]) -> None:
         boc, in_hash = await wallet.create_external_transfer_message(*orders.values())
-        await self.update_orders(*orders.keys(), in_msg_hash=in_hash,  status=SOS.TRANSFERRING)
+        await self.update_orders(*orders.keys(), in_msg_hash=in_hash, status=SOS.TRANSFERRING)
 
         try:
             await self.provider.tonapi.send_message(boc)
         except Exception:
             logger.error('Ошибка перевода %s.', [i.order_id for i in orders], exc_info=True)
             await self.update_orders(
-                *orders.keys(), status=SOS.ERROR, error=ErrorTypes.TRANSFER_ERROR
+                *orders.keys(),
+                status=SOS.ERROR,
+                error=ErrorTypes.TRANSFER_ERROR,
             )
             return
 
@@ -137,7 +145,9 @@ class TransferrerService:
         except TimeoutError:
             logger.error('Таймаут ожидания транзакции с in_msg_hash=%s.', in_hash)
             await self.update_orders(
-                *orders.keys(), status=SOS.ERROR, error=ErrorTypes.TRANSACTION_TIMEOUT_ERROR
+                *orders.keys(),
+                status=SOS.ERROR,
+                error=ErrorTypes.TRANSACTION_TIMEOUT_ERROR,
             )
             return
 
@@ -145,7 +155,9 @@ class TransferrerService:
         await self.update_orders(*orders.keys(), status=SOS.DONE, transaction_hash=tr.hash)
 
     async def get_transferable_orders(
-        self, orders_dict: dict[StarsOrder, Transfer], wallet: Wallet
+        self,
+        orders_dict: dict[StarsOrder, Transfer],
+        wallet: Wallet,
     ) -> dict[StarsOrder, Transfer]:
         balance = await wallet.get_balance() - int(0.1) * 1_000_000_000
         transferable_orders: dict[StarsOrder, Transfer] = {}

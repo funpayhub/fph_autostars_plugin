@@ -1,15 +1,19 @@
+from __future__ import annotations
+
+
 __all__ = [
     'AutostarsEvent',
     'StarsOrderCompletedEvent',
     'StarsOrderFailedEvent',
     'StarsOrdersPackCompletedEvent',
-    'StarsOrderPackFailedEvent'
+    'StarsOrderPackFailedEvent',
 ]
 
 from typing import Any
 
-from funpayhub.app.dispatching.events.base import HubEvent
 from autostars.src.types import StarsOrder
+
+from funpayhub.app.dispatching.events.base import HubEvent
 
 
 class AutostarsEvent(HubEvent, event_name='__autostars_event__'): ...
@@ -43,7 +47,9 @@ class StarsOrderFailedEvent(AutostarsEvent, event_name='autostars:stars_order_fa
         return super().event_context_injection | {'stars_order': self.stars_order}
 
 
-class StarsOrdersPackCompletedEvent(AutostarsEvent, event_name='autostars:stars_orders_pack_completed'):
+class StarsOrdersPackCompletedEvent(
+    AutostarsEvent, event_name='autostars:stars_orders_pack_completed'
+):
     def __init__(self, stars_orders: list[StarsOrder]) -> None:
         super().__init__()
         self._stars_orders = stars_orders

@@ -7,6 +7,7 @@ __all__ = ['Storage', 'Sqlite3Storage']
 from typing import Any, Self
 from abc import ABC, abstractmethod
 from pathlib import Path
+from collections import defaultdict
 
 import aiosqlite
 from aiosqlite import Cursor, Connection
@@ -26,6 +27,11 @@ class Storage(ABC):
 
     @abstractmethod
     async def get_order(self, order_id: str) -> StarsOrder | None: ...
+
+    @abstractmethod
+    async def get_old_orders(
+        self, instance_id: str
+    ) -> dict[StarsOrderStatus, list[StarsOrder]]: ...
 
     @abstractmethod
     async def stop(self) -> None: ...
@@ -168,6 +174,33 @@ class Sqlite3Storage(Storage):
             row['order_id']: StarsOrder.model_validate(dict(row))
             for row in await cursor.fetchall()
         }
+
+    async def get_old_orders(self, instance_id: str) -> dict[StarsOrderStatus, list[StarsOrder]]:
+        o_dict = await self.get_orders(
+            instance_id=instance_id,
+            same_instance=False,
+            status=[
+                StarsOrderStatus.WAITING_FOR_USERNAME,
+                StarsOrderStatus.ERROR,
+                StarsOrderStatus.UNPROCESSED,
+                StarsOrderStatus.READY,
+            ],
+        )
+
+        orders = {
+            i
+            for i in o_dict.values()
+            if not (i.status is StarsOrderStatus.ERROR and not i.retries_left)
+        }
+
+        if not orders:
+            return {}
+
+        orders_dict = defaultdict(list)
+        for i in orders:
+            orders_dict[i.status].append(i)
+
+        return dict(orders_dict)
 
     async def raw_query(
         self,

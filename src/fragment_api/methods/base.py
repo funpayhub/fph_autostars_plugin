@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, ClassVar
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, computed_field
-
 from autostars.src.fragment_api.types import FragmentResponse
 
 

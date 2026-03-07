@@ -6,6 +6,7 @@ __all__ = ['Callbacks']
 
 import asyncio
 from typing import TYPE_CHECKING
+from collections import defaultdict
 
 from autostars.src.other import NotificationChannels
 from autostars.src.logger import logger
@@ -17,7 +18,6 @@ from funpayhub.lib.hub.text_formatters.category import InCategory
 
 from funpayhub.app.main import FunPayHub
 from funpayhub.app.formatters import GeneralFormattersCategory
-from collections import defaultdict
 
 
 if TYPE_CHECKING:
@@ -76,7 +76,7 @@ class Callbacks:
                     order,
                     self.plugin.props.messages.username_not_found_message.value,
                     'Telegram username not found',
-                )
+                ),
             )
 
     async def on_username_invalid(self, *orders: StarsOrder) -> None:
@@ -86,9 +86,8 @@ class Callbacks:
                     order,
                     self.plugin.props.messages.invalid_username_message.value,
                     'Invalid telegram username',
-                )
+                ),
             )
-
 
     async def on_not_user_username(self, *orders: StarsOrder) -> None:
         for order in orders:
@@ -96,8 +95,8 @@ class Callbacks:
                 self.default_hook(
                     order,
                     self.plugin.props.messages.not_user_username_message.value,
-                    'Not user username'
-                )
+                    'Not user username',
+                ),
             )
 
     async def on_username_fetch_error(self, *orders: StarsOrder) -> None:
@@ -106,8 +105,8 @@ class Callbacks:
                 self.default_hook(
                     order,
                     self.plugin.props.messages.failed_to_fetch_username_message.value,
-                    'Error fetching telegram username'
-                )
+                    'Error fetching telegram username',
+                ),
             )
 
         # todo: send telegram notification
@@ -126,7 +125,7 @@ class Callbacks:
                     order,
                     self.plugin.props.messages.transaction_completed_message.value,
                     'Successful transaction',
-                )
+                ),
             )
 
         message_text = self.hub.translater.translate(
@@ -143,7 +142,7 @@ class Callbacks:
                     order,
                     self.plugin.props.messages.transaction_failed_message.value,
                     'Transaction error',
-                )
+                ),
             )
 
         message_text = self.hub.translater.translate(

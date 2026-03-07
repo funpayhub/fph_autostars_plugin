@@ -1,25 +1,25 @@
 from __future__ import annotations
 
+import time
 import asyncio
 import logging
 import traceback
-from itertools import chain
 from typing import TYPE_CHECKING
+from itertools import chain
+from collections import defaultdict
 
 from pytoniq import LiteClient
 from aiogram.types import BufferedInputFile
 from aiogram.methods import SendDocument
 
-from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.properties import ListParameter
 from funpayhub.lib.translater import _ru
-import time
+from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
 
 from funpayhub.app.plugin import Plugin
 
 from .fph import router as fph_router
-from .telegram.ui.context import OldOrdersMenuContext
 from .ton import Wallet
 from .other import NotificationChannels
 from .funpay import funpay_router
@@ -30,12 +30,16 @@ from .callbacks import Callbacks
 from .formatters import FORMATTERS, StarsOrderCategory
 from .properties import AutostarsProperties
 from .telegram.ui import BUILDERS
+from .types.enums import (
+    ErrorTypes,
+    StarsOrderStatus as SOS,
+)
 from .fragment_api import FragmentAPI
 from .autostars_provider import AutostarsProvider
 from .transferer_service import TransferrerService
+from .telegram.ui.context import OldOrdersMenuContext
 from .telegram.ui.modifications import MODIFICATIONS
-from .types.enums import StarsOrderStatus as SOS, ErrorTypes
-from collections import defaultdict
+
 
 if TYPE_CHECKING:
     from aiogram import Router as TGRouter
@@ -46,8 +50,9 @@ if TYPE_CHECKING:
     from funpayhub.lib.hub.text_formatters import Formatter
 
     from funpayhub.app.dispatching import Router as HubRouter
-    from .tonapi.types import Transaction
+
     from .types import StarsOrder
+    from .tonapi.types import Transaction
 
 
 class AutostarsPlugin(Plugin):
@@ -219,9 +224,9 @@ class AutostarsPlugin(Plugin):
         self.hub.telegram.send_notification(
             NotificationChannels.INFO,
             text=f'<b>⚠️ Найдены незавершенные транзакции с прошлого запуска FunPay Hub.\n'
-                 f'Заказы: {", ".join(f"<code>{i.order_id}</code>" for i in orders)}.\n\n'
-                 f'⌛ Выполняю проверку их статуса. Это может занять какое-то время (зависит от кол-ва заказов). '
-                 f'Пока проверка не выполнится, сервис не будет запущен.</b>'
+            f'Заказы: {", ".join(f"<code>{i.order_id}</code>" for i in orders)}.\n\n'
+            f'⌛ Выполняю проверку их статуса. Это может занять какое-то время (зависит от кол-ва заказов). '
+            f'Пока проверка не выполнится, сервис не будет запущен.</b>',
         )
 
         timeout = int(time.time() + 10)  # todo: valid_until from db
@@ -243,16 +248,16 @@ class AutostarsPlugin(Plugin):
             order.status = SOS.ERROR
             order.error = ErrorTypes.TRANSACTION_TIMEOUT_ERROR
 
-        notification_parts = [f'✅ Проверка незавершенных транзакций завершена.']
+        notification_parts = ['✅ Проверка незавершенных транзакций завершена.']
         if done:
             notification_parts.append(
                 f'✅ Подтверждены транзакции по заказам: '
-                f'{', '.join(f'<code>{i.order_id}</code>' for i in done)}.'
+                f'{", ".join(f"<code>{i.order_id}</code>" for i in done)}.',
             )
         if errored:
             notification_parts.append(
                 f'❌ Не удалось подтвердить транзакции по заказам: '
-                f'{', '.join(f'<code>{i.order_id}</code>' for i in errored)}.'
+                f'{", ".join(f"<code>{i.order_id}</code>" for i in errored)}.',
             )
 
         self.hub.telegram.send_notification(
@@ -269,9 +274,7 @@ class AutostarsPlugin(Plugin):
             status=[SOS.WAITING_FOR_USERNAME, SOS.ERROR, SOS.UNPROCESSED, SOS.READY],
         )
 
-        orders = {
-            i for i in o_dict.values() if not (i.status is SOS.ERROR and not i.retries_left)
-        }
+        orders = {i for i in o_dict.values() if not (i.status is SOS.ERROR and not i.retries_left)}
 
         if not orders:
             return
@@ -294,8 +297,8 @@ class AutostarsPlugin(Plugin):
                     'waiting_username_orders': len(orders_dict[SOS.WAITING_FOR_USERNAME]),
                     'ready_orders': len(orders_dict[SOS.READY]),
                     'unprocessed_orders': len(orders_dict[SOS.UNPROCESSED]),
-                }
-            )
+                },
+            ),
         ).build_menu(self.hub.telegram.ui_registry)
 
         self.hub.telegram.send_notification(

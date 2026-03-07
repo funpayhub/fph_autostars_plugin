@@ -93,5 +93,5 @@ _error_desc = {
     ErrorTypes.USERNAME_NOT_FOUND: 'Telegram юзернейм не найден',
     ErrorTypes.NOT_USER_USERNAME: 'Telegram юзернейм принадлежит не пользователю',
     ErrorTypes.UNABLE_TO_FETCH_USERNAME: 'Не удалось получить данные о Telegram юзернейме (ошибка Fragment API)',
-    ErrorTypes.FRAGMENT_API_NOT_PROVIDED: 'Fragment cookies или hash не указаны в настройках или невалидны'
+    ErrorTypes.FRAGMENT_API_NOT_PROVIDED: 'Fragment cookies или hash не указаны в настройках или невалидны',
 }
