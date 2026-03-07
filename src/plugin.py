@@ -14,7 +14,7 @@ from aiogram.methods import SendDocument
 
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.properties import ListParameter
-from funpayhub.lib.translater import _ru
+from funpayhub.lib.translater import ru
 from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
 
 from funpayhub.app.plugin import Plugin
@@ -101,15 +101,21 @@ class AutostarsPlugin(Plugin):
             Command(
                 source=self.manifest.plugin_id,
                 command='stars_order_info',
-                description='[AutoStars] Информация о заказе.',
+                description=ru('[AutoStars] Информация о заказе.'),
                 setup=True,
             ),
             Command(
                 source=self.manifest.plugin_id,
                 command='stars_mark_done',
-                description='[AutoStars] Пометить заказы как выполненные.',
+                description=ru('[AutoStars] Пометить заказы как выполненные.'),
                 setup=True,
             ),
+            Command(
+                source=self.manifest.plugin_id,
+                command='stars_old_orders',
+                description=ru('[AutoStars] Незаконченные заказы с прошлых запусков.'),
+                setup=True
+            )
         ]
 
     async def formatters(self) -> type[Formatter] | list[type[Formatter]] | None:
