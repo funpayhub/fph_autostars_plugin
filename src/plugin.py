@@ -10,6 +10,7 @@ from pytoniq import LiteClient
 from aiogram.types import BufferedInputFile
 from aiogram.methods import SendDocument
 
+from funpayhub.lib.base_app.telegram.app.ui.callbacks import OpenMenu
 from funpayhub.lib.telegram import Command
 from funpayhub.lib.properties import ListParameter
 from funpayhub.lib.translater import _ru
@@ -34,6 +35,7 @@ from .autostars_provider import AutostarsProvider
 from .transferer_service import TransferrerService
 from .telegram.ui.modifications import MODIFICATIONS
 from .types.enums import StarsOrderStatus as SOS, ErrorTypes
+from collections import defaultdict
 
 if TYPE_CHECKING:
     from aiogram import Router as TGRouter
@@ -264,19 +266,36 @@ class AutostarsPlugin(Plugin):
         o_dict = await self.provider.storage.get_orders(
             instance_id=self.hub.instance_id,
             same_instance=False,
-            status=[SOS.WAITING_FOR_USERNAME, SOS.ERROR],
+            status=[SOS.WAITING_FOR_USERNAME, SOS.ERROR, SOS.UNPROCESSED, SOS.READY],
         )
 
-        orders = {i for i in o_dict.values() if not (i.status is SOS.ERROR and not i.retries_left)}
+        orders = {
+            i for i in o_dict.values() if not (i.status is SOS.ERROR and not i.retries_left)
+        }
 
         if not orders:
             return
 
+        orders_dict = defaultdict(list)
+        for i in orders:
+            orders_dict[i.status].append(i)
+
         menu = await OldOrdersMenuContext(
             menu_id='autostars:old_orders_notification',
             chat_id=-1,
-            errored_orders=[i for i in orders if i.status is SOS.ERROR],
-            waiting_username_orders=[i for i in orders if i.status is SOS.WAITING_FOR_USERNAME],
+            errored_orders=len(orders_dict[SOS.ERROR]),
+            waiting_username_orders=len(orders_dict[SOS.WAITING_FOR_USERNAME]),
+            ready_orders=len(orders_dict[SOS.READY]),
+            unprocessed_orders=len(orders_dict[SOS.UNPROCESSED]),
+            callback_override=OpenMenu(
+                menu_id='autostars:old_orders_notification',
+                context_data={
+                    'errored_orders': len(orders_dict[SOS.ERROR]),
+                    'waiting_username_orders': len(orders_dict[SOS.WAITING_FOR_USERNAME]),
+                    'ready_orders': len(orders_dict[SOS.READY]),
+                    'unprocessed_orders': len(orders_dict[SOS.UNPROCESSED]),
+                }
+            )
         ).build_menu(self.hub.telegram.ui_registry)
 
         self.hub.telegram.send_notification(

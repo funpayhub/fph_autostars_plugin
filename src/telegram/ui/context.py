@@ -21,9 +21,16 @@ class StarsOrderMenuContext(MenuContext):
 
 @dataclass(kw_only=True)
 class OldOrdersMenuContext(MenuContext):
-    waiting_username_orders: list[StarsOrder]
-    errored_orders: list[StarsOrder]
+    unprocessed_orders: int
+    waiting_username_orders: int
+    ready_orders: int
+    errored_orders: int
 
     @property
     def total_len(self) -> int:
-        return len(self.waiting_username_orders) + len(self.errored_orders)
+        return (
+            self.unprocessed_orders +
+            self.waiting_username_orders +
+            self.ready_orders +
+            self.errored_orders
+        )

@@ -42,7 +42,9 @@ class StarsOrderStatus(Enum):
     TRANSFERRING = 'TRANSFERRING'
     DONE = 'DONE'
     ERROR = 'ERROR'
+    FORCE_DONE = 'FORCE_DONE'
     REFUNDED = 'REFUNDED'
+    FORCE_REFUNDED = 'FORCE_REFUNDED'
 
     @property
     def desc(self) -> str:
@@ -56,7 +58,10 @@ _status_desc = {
     StarsOrderStatus.PREPARING_TRANSFER: 'Подготавливается перевод',
     StarsOrderStatus.TRANSFERRING: 'Выполняется перевод TON',
     StarsOrderStatus.DONE: 'Выполнен',
-    StarsOrderStatus.ERROR: 'Завершен с ошибкой'
+    StarsOrderStatus.ERROR: 'Завершен с ошибкой',
+    StarsOrderStatus.FORCE_DONE: 'Помечен как выполненный (вручную)',
+    StarsOrderStatus.REFUNDED: 'Возвращены средства',
+    StarsOrderStatus.FORCE_REFUNDED: 'Возвращены средства (вручную)',
 }
 
 

@@ -104,7 +104,7 @@ async def _mark_as_done(order_ids: set[str], storage: Storage, translater: Trans
 
 
 @router.message(Command('stars_mark_done'))
-async def mark_as_ready(
+async def mark_as_done(
     message: Message,
     autostars_storage: Storage,
     translater: Translater,

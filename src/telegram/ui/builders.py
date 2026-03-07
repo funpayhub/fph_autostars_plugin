@@ -9,10 +9,14 @@ from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext
 from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import StripAndNavigationFinalizer
 
 from autostars.src.telegram.ui.context import StarsOrderMenuContext, OldOrdersMenuContext
+from funpayhub.lib.translater import translater
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
     from autostars.src.transferer_service import TransferrerService
+
+
+ru = translater.translate
 
 
 class StarsOrderInfoMenuBuilder(
@@ -120,28 +124,64 @@ class OldOrdersNotificationMenuBuilder(
 ):
     async def build(self, ctx: OldOrdersMenuContext) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
-
-        menu.main_text = (
-            f'<b>⚠️ Обнаружено {ctx.total_len} заказов, которые были инициированы во время'
-            f' предыдущего запуска FunPayHub, но так и не были завершены.</b>\n\n'
+        menu.main_text = ru(
+            '<b>⚠️ Обнаружены заказы (<code>{orders_amount}</code>), которые были инициированы во время'
+            ' предыдущего запуска FunPayHub, но так и не были завершены.</b>\n\n',
+            orders_amount=ctx.total_len
         )
 
+        if ctx.unprocessed_orders:
+            menu.main_text += ru(
+                '<b>🔘 Необработанные заказы (<code>{orders_amount}</code>)</b> были сохранены '
+                'в базу данных, но для них даже не была выполнена проверка Telegram юзернейма.\n\n',
+                orders_amount=ctx.unprocessed_orders
+            )
+            menu.main_keyboard.add_callback_button(
+                button_id='open_unprocessed_orders',
+                text=ru('🔘 Необработанные заказы'),
+                callback_data='dummy'
+            )
+
         if ctx.waiting_username_orders:
-            menu.main_text += (
-                f'⏳ {len(ctx.waiting_username_orders)} заказов были инициированы, '
-                f'но с переданные с ними Telegram юзернеймы невалидны или не найдены, '
-                f'поэтому по ним ожидается ввод валидного Telegram юзернейма от пользователя.\n\n'
+            menu.main_text += ru(
+                '<b>⏳ Заказы, ожидающие ввод валидного Telegram юзернейма (<code>{orders_amount}</code>),</b> '
+                'были созданы, но юзернеймы, которые передали покупатели, либо невалидны, '
+                'либо не были найдены.\n\n',
+                orders_amount=ctx.waiting_username_orders
+            )
+            menu.main_keyboard.add_callback_button(
+                button_id='open_waiting_username_orders',
+                text=ru('⏳ Ожидающие юзернейм'),
+                callback_data='dummy'
+            )
+
+        if ctx.ready_orders:
+            menu.main_text += ru(
+                '<b>⚡ Заказы, готовые к выполнению (<code>{orders_amount}</code>)</b>, '
+                'полностью валидны, но до них так и не дошла очередь.\n\n',
+                orders_amount=ctx.ready_orders
+            )
+            menu.main_keyboard.add_callback_button(
+                button_id='open_ready_orders',
+                text=ru('⚡ Готовые к выполнению'),
+                callback_data='dummy'
             )
 
         if ctx.errored_orders:
-            menu.main_text += (
-                f'⁉️ {len(ctx.errored_orders)} заказов завершились ошибкой, но их кол-во попыток '
-                f'ещё не исчерпано.\n\n'
+            menu.main_text += ru(
+                '<b>⁉️ Заказы, по которым не удалось выполнить транзакцию '
+                '(<code>{orders_amount}</code>)</b>, но у них есть еще несколько попыток.\n\n',
+                orders_amount=ctx.errored_orders
+            )
+            menu.main_keyboard.add_callback_button(
+                button_id='open_errored_orders',
+                text=ru('⁉️ Заказы с ошибкой'),
+                callback_data='dummy'
             )
 
-        menu.main_text += (
-            '🔘 Выберите, что делать с заказами.\n'
-            'Вы можете ничего с ними не делать, но тогда AutoStars будет их игнорировать, '
+        menu.main_text += ru(
+            '🛠️ Выберите, что делать с заказами.\n'
+            'Вы можете ничего с ними не делать, но тогда плагин будет их игнорировать, '
             'а это уведомление появится снова при следующем запуске.'
         )
 
