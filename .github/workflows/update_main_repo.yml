@@ -30,7 +30,7 @@ jobs:
       - name: Read manifest.json
         id: manifest
         run: |
-          VERSION=$(jq -r '.version' manifest.json)
+          VERSION=$(jq -r '.plugin_version' manifest.json)
           APP_VERSION=$(jq -r '.app_version' manifest.json)
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
