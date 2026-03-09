@@ -1,0 +1,69 @@
+name: Update plugin repo
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-repo:
+    runs-on: ubuntu-latest
+
+    env:
+      PLUGIN_ID: com.github.qvvonk.funpayhub.autostars_plugin
+
+    steps:
+
+      - name: Checkout plugin repo
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        uses: cli/gh-actions@v2
+
+      - name: Download plugin.zip from release
+        run: |
+          gh release download ${{ github.event.release.tag_name }} --pattern plugin.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate SHA256
+        id: hash
+        run: |
+          HASH=$(sha256sum plugin.zip | cut -d ' ' -f1)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Read manifest.json
+        id: manifest
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          APP_VERSION=$(jq -r '.app_version' manifest.json)
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Clone plugins repo
+        run: |
+          git clone https://x-access-token:${{ secrets.PLUGIN_REPO_TOKEN }}@github.com/funpayhub/fph_plugins_repo.git
+
+      - name: Update repo JSON
+        run: |
+          cd fph_plugins_repo
+
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/plugin.zip"
+
+          python update_repo.py \
+            "${{ env.PLUGIN_ID }}" \
+            "${{ steps.manifest.outputs.version }}" \
+            "${{ steps.manifest.outputs.app_version }}" \
+            "${{ steps.hash.outputs.hash }}" \
+            "$URL"
+
+      - name: Commit and push
+        run: |
+          cd fph_plugins_repo
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git add com.github.funpayhub.repo.json
+          git commit -m "Add ${{ env.PLUGIN_ID }} ${{ steps.manifest.outputs.version }}"
+          git push
