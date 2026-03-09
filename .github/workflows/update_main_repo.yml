@@ -16,14 +16,10 @@ jobs:
       - name: Checkout plugin repo
         uses: actions/checkout@v4
 
-      - name: Install GitHub CLI
-        uses: cli/gh-actions@v2
-
-      - name: Download plugin.zip from release
+      - name: Download plugin.zip
         run: |
-          gh release download ${{ github.event.release.tag_name }} --pattern plugin.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          curl -L -o plugin.zip \
+          https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/plugin.zip
 
       - name: Calculate SHA256
         id: hash
