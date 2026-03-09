@@ -52,6 +52,9 @@ class Storage(ABC):
         amount: int = 25,
     ) -> dict[str, StarsOrder]: ...
 
+    @abstractmethod
+    async def delete_orders(self, *order_ids: str) -> None: ...
+
 
 class Sqlite3Storage(Storage):
     def __init__(self, path: str | Path):
@@ -200,7 +203,15 @@ class Sqlite3Storage(Storage):
         for i in orders:
             orders_dict[i.status].append(i)
 
-        return dict(orders_dict)
+        return orders_dict
+
+    async def delete_orders(self, *order_ids: str) -> None:
+        if not order_ids:
+            return
+
+        place_holders = ', '.join(['?'] * len(order_ids))
+        sql = f'DELETE FROM orders WHERE order_id IN ({place_holders})'
+        await self.raw_query(sql, *order_ids, commit=True)
 
     async def raw_query(
         self,

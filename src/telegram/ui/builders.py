@@ -3,17 +3,22 @@ from __future__ import annotations
 import html
 from typing import TYPE_CHECKING
 
-from autostars.src.types.enums import StarsOrderStatus as SOS
-from autostars.src.telegram.ui.context import OldOrdersMenuContext, StarsOrderMenuContext
+from autostars.src.telegram.callbacks import OldOrdersAction, ListOldOrders
+from autostars.src.types.enums import StarsOrderStatus as SOS, StarsOrderStatus
+from autostars.src.telegram.ui.context import OldOrdersMenuContext, StarsOrderMenuContext, \
+    OldOrdersListMenuContext
 
 from funpayhub.lib.translater import translater
 from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext
-from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import StripAndNavigationFinalizer
+from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import StripAndNavigationFinalizer, build_view_navigation_buttons
+from funpayhub.app.telegram.ui.premade import confirmable_button
+import math
 
 
 if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
     from autostars.src.transferer_service import TransferrerService
+    from autostars.src.types import StarsOrder
 
 
 ru = translater.translate
@@ -144,7 +149,10 @@ class OldOrdersNotificationMenuBuilder(
             menu.main_keyboard.add_callback_button(
                 button_id='open_unprocessed_orders',
                 text=ru('🔘 Необработанные заказы'),
-                callback_data='dummy',
+                callback_data=ListOldOrders(
+                    status=StarsOrderStatus.UNPROCESSED,
+                    from_callback=ctx.callback_data,
+                ).pack(),
             )
 
         if ctx.waiting_username_orders:
@@ -157,7 +165,10 @@ class OldOrdersNotificationMenuBuilder(
             menu.main_keyboard.add_callback_button(
                 button_id='open_waiting_username_orders',
                 text=ru('⏳ Ожидающие юзернейм'),
-                callback_data='dummy',
+                callback_data=ListOldOrders(
+                    status=StarsOrderStatus.WAITING_FOR_USERNAME,
+                    from_callback=ctx.callback_data,
+                ).pack(),
             )
 
         if ctx.ready_orders:
@@ -169,7 +180,10 @@ class OldOrdersNotificationMenuBuilder(
             menu.main_keyboard.add_callback_button(
                 button_id='open_ready_orders',
                 text=ru('⚡ Готовые к выполнению'),
-                callback_data='dummy',
+                callback_data=ListOldOrders(
+                    status=StarsOrderStatus.READY,
+                    from_callback=ctx.callback_data,
+                ).pack(),
             )
 
         if ctx.errored_orders:
@@ -181,7 +195,10 @@ class OldOrdersNotificationMenuBuilder(
             menu.main_keyboard.add_callback_button(
                 button_id='open_errored_orders',
                 text=ru('⁉️ Заказы с ошибкой'),
-                callback_data='dummy',
+                callback_data=ListOldOrders(
+                    status=StarsOrderStatus.ERROR,
+                    from_callback=ctx.callback_data,
+                ).pack()
             )
 
         menu.main_text += ru(
@@ -191,3 +208,91 @@ class OldOrdersNotificationMenuBuilder(
         )
 
         return menu
+
+
+class OldOrdersListMenuBuilder(
+    MenuBuilder,
+    menu_id='autostars:old_orders_list',
+    context_type=OldOrdersListMenuContext
+):
+    async def build(self, ctx: OldOrdersListMenuContext) -> Menu:
+        menu = Menu(finalizer=StripAndNavigationFinalizer())
+
+        menu.header_text = ru(
+            '<b>Список заказов с прошлого запуска со статусом <i><u>{status}</u></i></b>.',
+            status=ru(ctx.orders_status.desc).lower()
+        )
+
+        orders = ctx.orders[ctx.view_page * 50:ctx.view_page * 50 + 50]
+        menu.header_keyboard = await build_view_navigation_buttons(
+            ctx, math.ceil(len(ctx.orders) / 50)
+        )
+
+        menu.main_text = '\n'.join(self.gen_order_text(i) for i in orders)
+
+        if orders:
+            menu.footer_text = ru('🛠️ Выберите, что делать с заказами.')
+
+            menu.main_keyboard.add_rows(
+                confirmable_button(
+                    ctx,
+                    text='♻️ Не игнорировать',
+                    confirm_id='dont_ignore',
+                    translater=translater,
+                    callback_data=OldOrdersAction(
+                        status=ctx.orders_status,
+                        action='dont_ignore',
+                        from_callback=ctx.callback_data,
+                    ).pack(),
+                    menu_callback_data=ctx.callback_data,
+                ),
+                confirmable_button(
+                    ctx,
+                    text='✅ Пометить как выполненные',
+                    confirm_id='mark_done',
+                    translater=translater,
+                    callback_data=OldOrdersAction(
+                        status=ctx.orders_status,
+                        action='mark_done',
+                        from_callback=ctx.callback_data,
+                    ).pack(),
+                    menu_callback_data=ctx.callback_data,
+                ),
+                confirmable_button(
+                    ctx,
+                    text='💸 Пометить как возвращенные',
+                    confirm_id='mark_refunded',
+                    translater=translater,
+                    callback_data=OldOrdersAction(
+                        status=ctx.orders_status,
+                        action='mark_refunded',
+                        from_callback=ctx.callback_data,
+                    ).pack(),
+                    menu_callback_data=ctx.callback_data,
+                ),
+                confirmable_button(
+                    ctx,
+                    text='🗑️ Удалить',
+                    confirm_id='delete',
+                    translater=translater,
+                    callback_data=OldOrdersAction(
+                        status=ctx.orders_status,
+                        action='delete',
+                        from_callback=ctx.callback_data,
+                    ).pack(),
+                    menu_callback_data=ctx.callback_data,
+                    style='danger'
+                )
+            )
+
+        return menu
+
+    def gen_order_text(self, order: StarsOrder):
+        return ru(
+            '<b><a href="https://funpay.com/orders/{order_id}/">{order_id}</a> | '
+            '{stars_amount} ⭐ | {funpay_username} (@{telegram_username})</b>',
+            order_id=order.order_id,
+            stars_amount=order.stars_amount,
+            funpay_username=order.order_preview.counterparty.username,
+            telegram_username=order.telegram_username,
+        )

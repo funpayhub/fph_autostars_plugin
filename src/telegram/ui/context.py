@@ -7,6 +7,7 @@ __all__ = ['StarsOrderMenuContext', 'OldOrdersMenuContext']
 from typing import TYPE_CHECKING
 from dataclasses import dataclass
 
+from autostars.src.types.enums import StarsOrderStatus
 from funpayhub.lib.telegram.ui import MenuContext
 
 
@@ -34,3 +35,14 @@ class OldOrdersMenuContext(MenuContext):
             + self.ready_orders
             + self.errored_orders
         )
+
+
+@dataclass(kw_only=True)
+class OldOrdersListMenuContext(MenuContext):
+    orders_status: StarsOrderStatus
+    orders: list[StarsOrder]
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if isinstance(self.orders_status, str):
+            self.orders_status = StarsOrderStatus(self.orders_status)

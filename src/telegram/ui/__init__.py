@@ -8,7 +8,13 @@ from .builders import (
     StatusMenuBuilder,
     StarsOrderInfoMenuBuilder,
     OldOrdersNotificationMenuBuilder,
+    OldOrdersListMenuBuilder
 )
 
 
-BUILDERS = [StarsOrderInfoMenuBuilder, StatusMenuBuilder, OldOrdersNotificationMenuBuilder]
+BUILDERS = [
+    StarsOrderInfoMenuBuilder,
+    StatusMenuBuilder,
+    OldOrdersNotificationMenuBuilder,
+    OldOrdersListMenuBuilder
+]
