@@ -32,4 +32,4 @@ jobs:
         with:
           files: plugin.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TONEK }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
