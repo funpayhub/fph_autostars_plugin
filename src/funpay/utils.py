@@ -25,12 +25,15 @@ async def extract_stars_orders(events: list[Event], hub_instance: str) -> list[S
         if preview.category_text.strip() not in _CATEGORY_TEXTS:
             continue
 
-        obj = StarsOrder(
-            message_obj=event.message,
-            order_preview=await event.get_order_preview(),
-            telegram_username=StarsOrder.get_telegram_username(preview.title),
-            hub_instance=hub_instance,
-        )
+        try:
+            obj = StarsOrder.from_objects(
+                event.message,
+                await event.get_order_preview(),
+                hub_instance
+            )
+        except ValueError:
+            continue
+
         if obj.type is not StarsOrderType.BY_USERNAME:
             continue
         result.append(obj)

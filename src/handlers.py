@@ -1,7 +1,10 @@
 from __future__ import annotations
+
+import asyncio
 from typing import TYPE_CHECKING
 
-from autostars.src.types.enums import ErrorTypes
+from autostars.src.autostars_provider import AutostarsProvider
+from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
 from funpayhub.app.dispatching.router import Router
 from autostars.src import events
 from funpayhub.lib.translater import translater, ru as _ru
@@ -18,7 +21,7 @@ if TYPE_CHECKING:
 
 
 router = Router(name='autostars:internal_events')
-ru = translater
+ru = translater.translate
 
 
 async def send_funpay_notification(hub: FPH, order: StarsOrder, msg_text: str, hook_name: str):
@@ -121,3 +124,31 @@ async def bad_username_fp_notification(
 
     msg, hook_name = ERROR_TYPES[stars_order.error]
     await send_funpay_notification(hub, stars_order, msg, hook_name)
+
+
+@router.on_event(
+    lambda stars_order, plugin_properties:
+    not stars_order.retries_left and plugin_properties.other.refund_on_error.value,
+    event_filter=events.StarsOrderFailedEvent.__event_name__,
+    as_task=True
+)
+async def refund(stars_order: StarsOrder, autostars_provider: AutostarsProvider, hub: FPH):
+    old_status = stars_order.status
+    stars_order.status = StarsOrderStatus.REFUNDED
+    await autostars_provider.storage.add_or_update_order(stars_order)
+
+
+    for i in range(3):
+        try:
+            await hub.funpay.bot.refund(stars_order.order_id)
+            break
+        except Exception:
+            logger.error(
+                _ru('Не удалось вернуть средства по заказу %s.'),
+                stars_order.order_id,
+                exc_info=True
+            )
+            await asyncio.sleep(1)
+    else:
+        stars_order.status = old_status
+        await autostars_provider.storage.add_or_update_order(stars_order)

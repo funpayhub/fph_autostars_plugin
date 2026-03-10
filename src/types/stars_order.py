@@ -20,9 +20,18 @@ from funpaybotengine.dispatching import NewSaleEvent, NewMessageEvent
 from .enums import ErrorTypes, StarsOrderType, StarsOrderStatus
 
 
-STARS_AMOUNT_RE = re.compile(r'^(\d+) (?:звёзд|Stars)(?:,|$)')
+STARS_AMOUNT_RE = re.compile(r'(?:^|, )(\d+) (?:звёзд|Stars)(?:,|$)')
 PCS_RE = re.compile(r', (\d+) (?:шт|pcs)\.(?:,|$)')
-VALID_USERNAME_RE = re.compile(r', @?([a-zA-Z0-9_]{4,32}),?')
+VALID_USERNAME_RE = re.compile(r', @?([a-zA-Z0-9_]{4,32})$')
+
+
+FULL_TITLE_RE = re.compile(
+    r'(?:(?:Другое количество|Different amount), )?'
+    r'(?P<stars_amount>\d+) (?:звёзд|Stars), '
+    r'(?:По username|By username)'
+    r'(?:, (?P<pcs>\d+) (?:шт|pcs)\.)?'
+    r'(?:, (?P<telegram_username>.+$))?'
+)
 
 
 class StarsOrder(BaseModel):
@@ -101,7 +110,7 @@ class StarsOrder(BaseModel):
     @property
     def order_stars_amount(self) -> int:
         try:
-            match = STARS_AMOUNT_RE.match(self.order_preview.title)
+            match = STARS_AMOUNT_RE.search(self.order_preview.title)
             return int(match.group(1))
         except Exception as e:
             raise ValidationError(
@@ -126,6 +135,19 @@ class StarsOrder(BaseModel):
     @property
     def done(self) -> bool:
         return self.status is StarsOrderStatus.DONE
+
+    @classmethod
+    def from_objects(cls, message: Message, order: OrderPreview, hub_instance: str) -> StarsOrder:
+        match = FULL_TITLE_RE.fullmatch(order.title)
+        if not match:
+            raise ValueError
+
+        return cls(
+            message_obj=message,
+            order_preview=order,
+            telegram_username=match.group('telegram_username'),
+            hub_instance=hub_instance,
+        )
 
     def __hash__(self):
         return id(self)

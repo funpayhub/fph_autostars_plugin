@@ -51,11 +51,9 @@ class StarsOrderInfoMenuBuilder(
             hub_instance=ctx.stars_order.hub_instance,
             attempts=ctx.stars_order.retries_left,
         )
-        if (
-            ctx.stars_order.status in [SOS.ERROR, SOS.WAITING_FOR_USERNAME]
-            and ctx.stars_order.error is not None
-        ):
-            menu.main_text += f'<b><i>{ctx.stars_order.error.desc}</i></b>\n'
+
+        if ctx.stars_order.error is not None:
+            menu.main_text += f'<b><i>❌ Последняя ошибка: {ctx.stars_order.error.desc}</i></b>\n'
 
         menu.main_text += '\n'
         if ctx.stars_order.recipient_id:
