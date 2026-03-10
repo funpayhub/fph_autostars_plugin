@@ -22,15 +22,17 @@ jobs:
 
       - name: Create ZIP
         run: | 
-          tar -acf plugin.zip \
-          --transform "s,^,${{ steps.zip_structure.outputs.root }}/," \
-          --exclude='__pycache__' \
-          ${{ steps.zip_structure.outputs.files }}
+          mkdir -p "tempzip/${{ steps.zip_structure.outputs.root }}"
+          cp ${{ steps.zip_structure.outputs.files }} "tempzip/${{ steps.zip_structure.outputs.root }}"
+          find "tempzip" -type d -name "__pycache__" -exec rm -r {} +
+          cd tempzip
+          zip -r plugin.zip ${{ steps.zip_structure.outputs.root }}
+          cd ..
 
       - name: Upload ZIP to release
         uses: softprops/action-gh-release@v2
         with:
-          files: plugin.zip
+          files: tempzip/plugin.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
