@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from autostars.src.telegram import states
+from autostars.src.telegram import (
+    states,
+    callbacks as cbs,
+)
 from autostars.src.types.enums import StarsOrderStatus
 from autostars.src.autostars_provider import AutostarsProvider
 from autostars.src.telegram.ui.context import OldOrdersMenuContext, StarsOrderMenuContext
@@ -17,7 +20,6 @@ from funpayhub.lib.base_app.telegram.utils import delete_message
 from funpayhub.app.main import FunPayHub
 from funpayhub.app.telegram.ui.ids import MenuIds
 from funpayhub.app.telegram.ui.builders.context import StateUIContext
-from autostars.src.telegram import callbacks as cbs
 
 
 if TYPE_CHECKING:
@@ -100,7 +102,7 @@ async def list_old_orders(
         waiting_username_orders=len(orders.get(StarsOrderStatus.WAITING_FOR_USERNAME, [])),
         ready_orders=len(orders.get(StarsOrderStatus.READY, [])),
         unprocessed_orders=len(orders.get(StarsOrderStatus.UNPROCESSED, [])),
-        callback_override=cbs.CheckOldOrders()
+        callback_override=cbs.CheckOldOrders(),
     ).build_and_answer(tg_ui, message)
 
 

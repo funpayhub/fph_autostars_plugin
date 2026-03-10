@@ -30,7 +30,7 @@ FULL_TITLE_RE = re.compile(
     r'(?P<stars_amount>\d+) (?:звёзд|Stars), '
     r'(?:По username|By username)'
     r'(?:, (?P<pcs>\d+) (?:шт|pcs)\.)?'
-    r'(?:, (?P<telegram_username>.+$))?'
+    r'(?:, (?P<telegram_username>.+$))?',
 )
 
 

@@ -6,9 +6,9 @@ __all__ = ['BUILDERS']
 
 from .builders import (
     StatusMenuBuilder,
+    OldOrdersListMenuBuilder,
     StarsOrderInfoMenuBuilder,
     OldOrdersNotificationMenuBuilder,
-    OldOrdersListMenuBuilder
 )
 
 
@@ -16,5 +16,5 @@ BUILDERS = [
     StarsOrderInfoMenuBuilder,
     StatusMenuBuilder,
     OldOrdersNotificationMenuBuilder,
-    OldOrdersListMenuBuilder
+    OldOrdersListMenuBuilder,
 ]

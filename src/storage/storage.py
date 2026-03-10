@@ -30,7 +30,8 @@ class Storage(ABC):
 
     @abstractmethod
     async def get_old_orders(
-        self, instance_id: str
+        self,
+        instance_id: str,
     ) -> dict[StarsOrderStatus, list[StarsOrder]]: ...
 
     @abstractmethod

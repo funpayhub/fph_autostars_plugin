@@ -36,7 +36,8 @@ async def update_fragment_api(
     plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties],
 ):
     await autostars_provider.change_fragment(
-        plugin.properties.wallet.cookies.value, plugin.properties.wallet.fragment_hash.value
+        plugin.properties.wallet.cookies.value,
+        plugin.properties.wallet.fragment_hash.value,
     )
 
 

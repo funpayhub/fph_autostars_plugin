@@ -35,7 +35,7 @@ orderid_re = re.compile(r'[A-Z0-9]{8}')
 _CHECK_USERNAME_ERRORS = {
     'no telegram users found.': ErrorTypes.USERNAME_NOT_FOUND,
     'please enter a username assigned to a user.': ErrorTypes.NOT_USER_USERNAME,
-    'you can&#39;t gift telegram stars to this account at this moment.': ErrorTypes.BLOCKED_BY_USER
+    'you can&#39;t gift telegram stars to this account at this moment.': ErrorTypes.BLOCKED_BY_USER,
 }
 
 
@@ -139,7 +139,10 @@ async def update_order_username(
     if order.status is not StarsOrderStatus.WAITING_FOR_USERNAME:
         return
 
-    if len(args) < 2 and order.error not in [ErrorTypes.UNABLE_TO_FETCH_USERNAME, ErrorTypes.BLOCKED_BY_USER]:
+    if len(args) < 2 and order.error not in [
+        ErrorTypes.UNABLE_TO_FETCH_USERNAME,
+        ErrorTypes.BLOCKED_BY_USER,
+    ]:
         return
 
     order.telegram_username = args[1] if len(args) > 1 else order.telegram_username

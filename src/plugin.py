@@ -16,13 +16,12 @@ from funpayhub.lib.translater import ru
 from funpayhub.app.plugin import Plugin
 
 from .fph import router as fph_router
-from .telegram.callbacks import CheckOldOrders
 from .ton import Wallet
 from .other import NotificationChannels
 from .funpay import funpay_router
 from .tonapi import TonAPI
 from .storage import Sqlite3Storage
-from .telegram.routers import ROUTERS
+from .handlers import router as autostars_internal_router
 from .callbacks import Callbacks
 from .formatters import FORMATTERS, StarsOrderCategory
 from .properties import AutostarsProperties
@@ -31,9 +30,10 @@ from .types.enums import (
     ErrorTypes,
     StarsOrderStatus as SOS,
 )
-from .handlers import router as autostars_internal_router
 from .fragment_api import FragmentAPI
+from .telegram.routers import ROUTERS
 from .autostars_provider import AutostarsProvider
+from .telegram.callbacks import CheckOldOrders
 from .transferer_service import TransferrerService
 from .telegram.ui.context import OldOrdersMenuContext
 from .telegram.ui.modifications import MODIFICATIONS
@@ -112,8 +112,8 @@ class AutostarsPlugin(Plugin):
                 source=self.manifest.plugin_id,
                 command='stars_old_orders',
                 description=ru('[AutoStars] Незаконченные заказы с прошлых запусков.'),
-                setup=True
-            )
+                setup=True,
+            ),
         ]
 
     async def formatters(self) -> type[Formatter] | list[type[Formatter]] | None:
@@ -280,7 +280,7 @@ class AutostarsPlugin(Plugin):
             waiting_username_orders=len(orders_dict.get(SOS.WAITING_FOR_USERNAME, [])),
             ready_orders=len(orders_dict.get(SOS.READY, [])),
             unprocessed_orders=len(orders_dict.get(SOS.UNPROCESSED, [])),
-            callback_override=CheckOldOrders()
+            callback_override=CheckOldOrders(),
         ).build_menu(self.hub.telegram.ui_registry)
 
         self.hub.telegram.send_notification(

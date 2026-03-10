@@ -3,21 +3,28 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from autostars.src.autostars_provider import AutostarsProvider
-from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
-from funpayhub.app.dispatching.router import Router
 from autostars.src import events
-from funpayhub.lib.translater import translater, ru as _ru
 from autostars.src.other import NotificationChannels
 from autostars.src.logger import logger
-from autostars.src.formatters import StarsOrderFormatterContext, StarsOrderCategory
+from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
+from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
+from autostars.src.autostars_provider import AutostarsProvider
+
+from funpayhub.lib.translater import (
+    ru as _ru,
+    translater,
+)
 from funpayhub.lib.hub.text_formatters.category import InCategory
+
 from funpayhub.app.formatters import GeneralFormattersCategory
+from funpayhub.app.dispatching.router import Router
+
 
 if TYPE_CHECKING:
-    from funpayhub.app.main import FunPayHub as FPH
     from autostars.src.types import StarsOrder
     from autostars.src.properties import AutostarsProperties
+
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 router = Router(name='autostars:internal_events')
@@ -49,7 +56,7 @@ async def send_funpay_notification(hub: FPH, order: StarsOrder, msg_text: str, h
 async def success_tg_notification(hub: FPH, event: events.StarsOrdersPackCompletedEvent):
     message_text = ru(
         '<b>✅ Транзакции по заказам {order_ids} успешно выполнены.</b>',
-        order_ids=', '.join(f'<code>{i.order_id}</code>' for i in event.stars_orders)
+        order_ids=', '.join(f'<code>{i.order_id}</code>' for i in event.stars_orders),
     )
     hub.telegram.send_notification(NotificationChannels.INFO, message_text)
 
@@ -62,13 +69,15 @@ async def err_tg_notification(hub: FPH, event: events.StarsOrdersPackFailedEvent
 
     message_text = ru(
         '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>',
-        order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders)
+        order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
     )
     hub.telegram.send_notification(NotificationChannels.ERROR, message_text)
 
 
 @router.on_event(event_filter=events.StarsOrderCompletedEvent.__event_name__)
-async def success_fp_notification(stars_order: StarsOrder, plugin_properties: AutostarsProperties, hub: FPH):
+async def success_fp_notification(
+    stars_order: StarsOrder, plugin_properties: AutostarsProperties, hub: FPH
+):
     await send_funpay_notification(
         hub,
         stars_order,
@@ -80,9 +89,11 @@ async def success_fp_notification(stars_order: StarsOrder, plugin_properties: Au
 @router.on_event(
     lambda stars_order: not stars_order.retries_left,
     event_filter=events.StarsOrderFailedEvent.__event_name__,
-    as_task=True
+    as_task=True,
 )
-async def failed_fp_notification(stars_order: StarsOrder, plugin_properties: AutostarsProperties, hub: FPH):
+async def failed_fp_notification(
+    stars_order: StarsOrder, plugin_properties: AutostarsProperties, hub: FPH
+):
     await send_funpay_notification(
         hub,
         stars_order,
@@ -95,29 +106,29 @@ async def failed_fp_notification(stars_order: StarsOrder, plugin_properties: Aut
 async def bad_username_fp_notification(
     stars_order: StarsOrder,
     plugin_properties: AutostarsProperties,
-    hub: FPH
+    hub: FPH,
 ):
     ERROR_TYPES = {
         ErrorTypes.UNABLE_TO_FETCH_USERNAME: (
             plugin_properties.messages.failed_to_fetch_username_message.value,
-            'Error fetching telegram username'
+            'Error fetching telegram username',
         ),
         ErrorTypes.INVALID_USERNAME: (
             plugin_properties.messages.invalid_username_message.value,
-            'Invalid telegram username'
+            'Invalid telegram username',
         ),
         ErrorTypes.NOT_USER_USERNAME: (
             plugin_properties.messages.not_user_username_message.value,
-            'Not user username'
+            'Not user username',
         ),
         ErrorTypes.USERNAME_NOT_FOUND: (
             plugin_properties.messages.username_not_found_message.value,
-            'Username not found'
+            'Username not found',
         ),
         ErrorTypes.BLOCKED_BY_USER: (
             plugin_properties.messages.blocked_by_user_message.value,
-            'Blocked by user'
-        )
+            'Blocked by user',
+        ),
     }
     if stars_order.error not in ERROR_TYPES:
         return
@@ -127,16 +138,15 @@ async def bad_username_fp_notification(
 
 
 @router.on_event(
-    lambda stars_order, plugin_properties:
-    not stars_order.retries_left and plugin_properties.other.refund_on_error.value,
+    lambda stars_order, plugin_properties: not stars_order.retries_left
+    and plugin_properties.other.refund_on_error.value,
     event_filter=events.StarsOrderFailedEvent.__event_name__,
-    as_task=True
+    as_task=True,
 )
 async def refund(stars_order: StarsOrder, autostars_provider: AutostarsProvider, hub: FPH):
     old_status = stars_order.status
     stars_order.status = StarsOrderStatus.REFUNDED
     await autostars_provider.storage.add_or_update_order(stars_order)
-
 
     for i in range(3):
         try:
@@ -146,7 +156,7 @@ async def refund(stars_order: StarsOrder, autostars_provider: AutostarsProvider,
             logger.error(
                 _ru('Не удалось вернуть средства по заказу %s.'),
                 stars_order.order_id,
-                exc_info=True
+                exc_info=True,
             )
             await asyncio.sleep(1)
     else:

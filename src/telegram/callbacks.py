@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Literal
+
+from typing import Literal, Annotated
 
 from pydantic import BeforeValidator, PlainSerializer
-
 from autostars.src.types.enums import StarsOrderStatus
+
 from funpayhub.lib.telegram.callback_data import CallbackData
-from typing import Annotated
 
 
 def status_field_validator(v: str) -> StarsOrderStatus:
@@ -19,7 +19,7 @@ def status_field_serializer(v: StarsOrderStatus) -> str:
 StatusField = Annotated[
     StarsOrderStatus,
     BeforeValidator(status_field_validator),
-    PlainSerializer(status_field_serializer)
+    PlainSerializer(status_field_serializer),
 ]
 
 

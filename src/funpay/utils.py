@@ -29,7 +29,7 @@ async def extract_stars_orders(events: list[Event], hub_instance: str) -> list[S
             obj = StarsOrder.from_objects(
                 event.message,
                 await event.get_order_preview(),
-                hub_instance
+                hub_instance,
             )
         except ValueError:
             continue

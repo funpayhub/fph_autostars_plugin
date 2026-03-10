@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 
 from autostars.src.types.enums import StarsOrderStatus
+
 from funpayhub.lib.telegram.ui import MenuContext
 
 

@@ -1,24 +1,34 @@
 from __future__ import annotations
 
 import html
+import math
 from typing import TYPE_CHECKING
 
-from autostars.src.telegram.callbacks import OldOrdersAction, ListOldOrders
-from autostars.src.types.enums import StarsOrderStatus as SOS, StarsOrderStatus
-from autostars.src.telegram.ui.context import OldOrdersMenuContext, StarsOrderMenuContext, \
-    OldOrdersListMenuContext
+from autostars.src.types.enums import (
+    StarsOrderStatus,
+    StarsOrderStatus as SOS,
+)
+from autostars.src.telegram.callbacks import ListOldOrders, OldOrdersAction
+from autostars.src.telegram.ui.context import (
+    OldOrdersMenuContext,
+    StarsOrderMenuContext,
+    OldOrdersListMenuContext,
+)
 
 from funpayhub.lib.translater import translater
 from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext
-from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import StripAndNavigationFinalizer, build_view_navigation_buttons
+from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import (
+    StripAndNavigationFinalizer,
+    build_view_navigation_buttons,
+)
+
 from funpayhub.app.telegram.ui.premade import confirmable_button
-import math
 
 
 if TYPE_CHECKING:
+    from autostars.src.types import StarsOrder
     from autostars.src.autostars_provider import AutostarsProvider
     from autostars.src.transferer_service import TransferrerService
-    from autostars.src.types import StarsOrder
 
 
 ru = translater.translate
@@ -196,7 +206,7 @@ class OldOrdersNotificationMenuBuilder(
                 callback_data=ListOldOrders(
                     status=StarsOrderStatus.ERROR,
                     from_callback=ctx.callback_data,
-                ).pack()
+                ).pack(),
             )
 
         menu.main_text += ru(
@@ -211,19 +221,20 @@ class OldOrdersNotificationMenuBuilder(
 class OldOrdersListMenuBuilder(
     MenuBuilder,
     menu_id='autostars:old_orders_list',
-    context_type=OldOrdersListMenuContext
+    context_type=OldOrdersListMenuContext,
 ):
     async def build(self, ctx: OldOrdersListMenuContext) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
 
         menu.header_text = ru(
             '<b>Список заказов с прошлого запуска со статусом <i><u>{status}</u></i></b>.',
-            status=ru(ctx.orders_status.desc).lower()
+            status=ru(ctx.orders_status.desc).lower(),
         )
 
-        orders = ctx.orders[ctx.view_page * 50:ctx.view_page * 50 + 50]
+        orders = ctx.orders[ctx.view_page * 50 : ctx.view_page * 50 + 50]
         menu.header_keyboard = await build_view_navigation_buttons(
-            ctx, math.ceil(len(ctx.orders) / 50)
+            ctx,
+            math.ceil(len(ctx.orders) / 50),
         )
 
         menu.main_text = '\n'.join(self.gen_order_text(i) for i in orders)
@@ -279,8 +290,8 @@ class OldOrdersListMenuBuilder(
                         from_callback=ctx.callback_data,
                     ).pack(),
                     menu_callback_data=ctx.callback_data,
-                    style='danger'
-                )
+                    style='danger',
+                ),
             )
 
         return menu

@@ -97,7 +97,10 @@ class TransferrerService:
 
         if err := (orders_to_transfer.keys() - transferable_orders.keys()):
             await self.update_orders(
-                *err, status=SOS.ERROR, error=ErrorTypes.NOT_ENOUGH_TON, retries_left=0
+                *err,
+                status=SOS.ERROR,
+                error=ErrorTypes.NOT_ENOUGH_TON,
+                retries_left=0,
             )
 
         if not transferable_orders:
@@ -106,7 +109,9 @@ class TransferrerService:
         await self.transfer_orders(wallet, transferable_orders)
 
     async def stars_link(
-        self, api: FragmentAPI, o: StarsOrder
+        self,
+        api: FragmentAPI,
+        o: StarsOrder,
     ) -> tuple[StarsOrder, Transfer | None]:
         try:
             req = await api.init_buy_stars_request(o.recipient_id, o.stars_amount)

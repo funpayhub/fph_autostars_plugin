@@ -211,12 +211,11 @@ class Other(Properties):
             flags=[TelegramUIEmojiFlag('🔩')],
         )
 
-
         self.refund_on_error = self.attach_node(
             ToggleParameter(
                 id='refund_on_error',
                 name='Возврат средств при ошибке',
                 description='Возвращать ли средства за заказ при ошибке перевода TON.',
                 default_value=False,
-            )
+            ),
         )

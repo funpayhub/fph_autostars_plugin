@@ -51,7 +51,6 @@ class OrdersPackEvent(AutostarsEvent, event_name='__autostars_orders_pack_event_
         return super().event_context_injection | {'stars_orders': self.stars_orders}
 
 
-
 class StarsOrderCompletedEvent(SingleOrderEvent, event_name='autostars:stars_order_completed'): ...
 
 
@@ -60,22 +59,23 @@ class StarsOrderFailedEvent(SingleOrderEvent, event_name='autostars:stars_order_
 
 class StarsOrderUsernameCheckFailed(
     SingleOrderEvent,
-    event_name='autostars:stars_order_username_failed'
+    event_name='autostars:stars_order_username_failed',
 ): ...
 
 
 class StarsOrdersPackCompletedEvent(
     OrdersPackEvent,
-    event_name='autostars:stars_orders_pack_completed'
+    event_name='autostars:stars_orders_pack_completed',
 ): ...
 
 
 class StarsOrdersPackFailedEvent(
     OrdersPackEvent,
-    event_name='autostars:stars_orders_pack_failed'
+    event_name='autostars:stars_orders_pack_failed',
 ): ...
+
 
 class StarsOrdersPackUsernameCheckFailed(
     OrdersPackEvent,
-    event_name='autostars:stars_orders_pack_username_failed'
+    event_name='autostars:stars_orders_pack_username_failed',
 ): ...

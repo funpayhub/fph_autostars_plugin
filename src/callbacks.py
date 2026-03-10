@@ -6,9 +6,9 @@ __all__ = ['Callbacks']
 
 from typing import TYPE_CHECKING
 
+from autostars.src import events
 from autostars.src.logger import logger
 from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
-from autostars.src import events
 
 from funpayhub.lib.translater import _ru
 from funpayhub.lib.hub.text_formatters.category import InCategory
@@ -54,7 +54,7 @@ class Callbacks:
 
     async def on_username_check_error(self, *orders: StarsOrder) -> None:
         await self.hub.dispatcher.event_entry(
-            events.StarsOrdersPackUsernameCheckFailed(list(orders))
+            events.StarsOrdersPackUsernameCheckFailed(list(orders)),
         )
         for i in orders:
             await self.hub.dispatcher.event_entry(events.StarsOrderUsernameCheckFailed(i))
