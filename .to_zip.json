@@ -1,0 +1,8 @@
+{
+  "root": "autostars",
+  "entries": [
+    "src",
+    "manifest.json",
+    "test.py"
+  ]
+}

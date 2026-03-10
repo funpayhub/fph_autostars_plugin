@@ -1,0 +1,35 @@
+name: Create Plugin ZIP
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Get ZIP structure
+        id: zip_structure
+        run: |
+          FILES=$(jq -r '.entries[]' .to_zip.json | paste -sd " " -)
+          ROOT=$(jq -r '.root' .to_zip.json)
+          echo "root=$ROOT" >> $GITHUB_OUTPUT
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP
+        run: | 
+          tar -acf plugin.zip \
+          --transform "s,^,${{ steps.zip_structure.outputs.root }}/," \
+          --exclude='__pycache__' \
+          ${{ steps.zip_structure.outputs.files }}
+
+      - name: Upload ZIP to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: plugin.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
