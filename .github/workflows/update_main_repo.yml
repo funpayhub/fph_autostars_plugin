@@ -1,10 +1,8 @@
 name: Update plugin repo
 
 on:
-  workflow_run:
-    workflows: ["Create Plugin ZIP"]
-    types:
-      - completed
+  repository_dispatch:
+    types: [plugin_zip_generated]
 
 jobs:
   update-repo:
@@ -12,7 +10,7 @@ jobs:
 
     env:
       PLUGIN_ID: com.github.qvvonk.funpayhub.autostars_plugin
-      PLUGIN_URL: ${{ github.event.workflow_run.outputs.plugin_url }}
+      PLUGIN_URL: ${{ github.event.client_payload.url }}
 
     steps:
 

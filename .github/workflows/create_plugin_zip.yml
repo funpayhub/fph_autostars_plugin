@@ -7,8 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      plugin_url: ${{ steps.plugin_url.outputs.plugin_url }}
 
     steps:
       - name: Checkout repo
@@ -36,7 +34,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: Return URL
-        id: plugin_url
-        run: |
-          echo "plugin_url=https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/plugin.zip" >> $GITHUB_OUTPUT
+      - name: Dispatch
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          event-type: plugin_zip_generated
+          client-payload: '{"url": "https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/plugin.zip"}'
