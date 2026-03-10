@@ -4,10 +4,8 @@ from __future__ import annotations
 __all__ = ['Callbacks']
 
 
-import asyncio
 from typing import TYPE_CHECKING
 
-from autostars.src.other import NotificationChannels
 from autostars.src.logger import logger
 from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
 from autostars.src import events
