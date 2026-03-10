@@ -96,10 +96,10 @@ async def list_old_orders(
     await OldOrdersMenuContext(
         menu_id='autostars:old_orders_notification',
         trigger=message,
-        errored_orders=len(orders[StarsOrderStatus.ERROR]),
-        waiting_username_orders=len(orders[StarsOrderStatus.WAITING_FOR_USERNAME]),
-        ready_orders=len(orders[StarsOrderStatus.READY]),
-        unprocessed_orders=len(orders[StarsOrderStatus.UNPROCESSED]),
+        errored_orders=len(orders.get(StarsOrderStatus.ERROR, [])),
+        waiting_username_orders=len(orders.get(StarsOrderStatus.WAITING_FOR_USERNAME, [])),
+        ready_orders=len(orders.get(StarsOrderStatus.READY, [])),
+        unprocessed_orders=len(orders.get(StarsOrderStatus.UNPROCESSED, [])),
         callback_override=cbs.CheckOldOrders()
     ).build_and_answer(tg_ui, message)
 

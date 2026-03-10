@@ -49,7 +49,7 @@ class Storage(ABC):
     async def get_ready_orders(
         self,
         instance_id: str,
-        amount: int = 25,
+        amount: int = 65,
     ) -> dict[str, StarsOrder]: ...
 
     @abstractmethod

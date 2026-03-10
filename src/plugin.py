@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import time
 import asyncio
-import logging
 import traceback
 from typing import TYPE_CHECKING
 from itertools import chain
 
-from pytoniq import LiteClient
 from aiogram.types import BufferedInputFile
 from aiogram.methods import SendDocument
 
@@ -132,9 +130,6 @@ class AutostarsPlugin(Plugin):
         return MODIFICATIONS
 
     async def post_setup(self) -> None:
-        logger = logging.getLogger(LiteClient.__name__)
-        logger.setLevel(logging.WARNING)
-
         storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
         self.provider = AutostarsProvider(TonAPI(), storage)
 
@@ -280,10 +275,10 @@ class AutostarsPlugin(Plugin):
         menu = await OldOrdersMenuContext(
             menu_id='autostars:old_orders_notification',
             chat_id=-1,
-            errored_orders=len(orders_dict[SOS.ERROR]),
-            waiting_username_orders=len(orders_dict[SOS.WAITING_FOR_USERNAME]),
-            ready_orders=len(orders_dict[SOS.READY]),
-            unprocessed_orders=len(orders_dict[SOS.UNPROCESSED]),
+            errored_orders=len(orders_dict.get(SOS.ERROR, [])),
+            waiting_username_orders=len(orders_dict.get(SOS.WAITING_FOR_USERNAME, [])),
+            ready_orders=len(orders_dict.get(SOS.READY, [])),
+            unprocessed_orders=len(orders_dict.get(SOS.UNPROCESSED, [])),
             callback_override=CheckOldOrders()
         ).build_menu(self.hub.telegram.ui_registry)
 

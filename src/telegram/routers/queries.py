@@ -42,10 +42,10 @@ async def check_old_orders(
     await OldOrdersMenuContext(
         menu_id='autostars:old_orders_notification',
         trigger=query,
-        errored_orders=len(orders[StarsOrderStatus.ERROR]),
-        waiting_username_orders=len(orders[StarsOrderStatus.WAITING_FOR_USERNAME]),
-        ready_orders=len(orders[StarsOrderStatus.READY]),
-        unprocessed_orders=len(orders[StarsOrderStatus.UNPROCESSED]),
+        errored_orders=len(orders.get(StarsOrderStatus.ERROR, [])),
+        waiting_username_orders=len(orders.get(StarsOrderStatus.WAITING_FOR_USERNAME, [])),
+        ready_orders=len(orders.get(StarsOrderStatus.READY, [])),
+        unprocessed_orders=len(orders.get(StarsOrderStatus.UNPROCESSED, [])),
         callback_override=cbs.CheckOldOrders()
     ).build_and_apply(tg_ui, query.message)
 
@@ -59,7 +59,7 @@ async def list_old_orders(
     callback_data: ListOldOrders
 ):
     orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
-    if not orders[callback_data.status]:
+    if not orders.get(callback_data.status, []):
         await query.answer(
             ru(
                 '✅ Нет заказов с прошлых запусков со статусом {status}.',
@@ -85,7 +85,7 @@ async def old_orders_action(
     hub: FunPayHub
 ):
     orders_dict = await autostars_provider.storage.get_old_orders(hub.instance_id)
-    orders = orders_dict[callback_data.status]
+    orders = orders_dict.get(callback_data.status, [])
     if not orders:
         await query.answer(
             ru(
