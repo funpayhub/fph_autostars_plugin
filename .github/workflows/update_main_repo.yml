@@ -20,7 +20,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download plugin.zip
-        run: curl -L -o plugin.zip "$PLUGIN_URL"
+        run: |
+          echo $PLUGIN_URL
+          curl -L -o plugin.zip $PLUGIN_URL
 
       - name: Calculate SHA256
         id: hash
