@@ -112,7 +112,7 @@ async def bad_username_fp_notification(
             'Username not found'
         ),
         ErrorTypes.BLOCKED_BY_USER: (
-            plugin_properties.messages.failed_to_fetch_username_message.value, # todo: отдельное сообщение
+            plugin_properties.messages.blocked_by_user_message.value,
             'Blocked by user'
         )
     }
