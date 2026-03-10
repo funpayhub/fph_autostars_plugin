@@ -12,6 +12,7 @@ jobs:
 
     env:
       PLUGIN_ID: com.github.qvvonk.funpayhub.autostars_plugin
+      PLUGIN_URL: ${{ github.event.workflow_run.outputs.plugin_url }}
 
     steps:
 
@@ -19,9 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download plugin.zip
-        run: |
-          curl -L -o plugin.zip \
-          https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/plugin.zip
+        run: curl -L -o plugin.zip "$PLUGIN_URL"
 
       - name: Calculate SHA256
         id: hash
@@ -46,14 +45,12 @@ jobs:
         run: |
           cd fph_plugins_repo
 
-          URL="https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/plugin.zip"
-
           python update_repo.py \
             "${{ env.PLUGIN_ID }}" \
             "${{ steps.manifest.outputs.version }}" \
             "${{ steps.manifest.outputs.app_version }}" \
             "${{ steps.hash.outputs.hash }}" \
-            "$URL"
+            "$PLUGIN_URL"
 
       - name: Commit and push
         run: |
