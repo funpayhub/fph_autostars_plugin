@@ -7,8 +7,10 @@ from autostars.src import events
 from autostars.src.other import NotificationChannels
 from autostars.src.logger import logger
 from autostars.src.formatters import StarsOrderCategory, StarsOrderFormatterContext
+from autostars.src.telegram.ui.context import OrdersListMenuContext
 from autostars.src.types.enums import ErrorTypes, StarsOrderStatus
 from autostars.src.autostars_provider import AutostarsProvider
+from funpayhub.lib.telegram.ui import UIRegistry
 
 from funpayhub.lib.translater import (
     ru as _ru,
@@ -53,25 +55,46 @@ async def send_funpay_notification(hub: FPH, order: StarsOrder, msg_text: str, h
 
 
 @router.on_event(event_filter=events.StarsOrdersPackCompletedEvent.__event_name__)
-async def success_tg_notification(hub: FPH, event: events.StarsOrdersPackCompletedEvent):
-    message_text = ru(
-        '<b>✅ Транзакции по заказам {order_ids} успешно выполнены.</b>',
-        order_ids=', '.join(f'<code>{i.order_id}</code>' for i in event.stars_orders),
+async def success_tg_notification(
+    hub: FPH,
+    event: events.StarsOrdersPackCompletedEvent,
+    tg_ui: UIRegistry
+):
+    menu = await OrdersListMenuContext(
+        menu_id='autostars:orders_list',
+        chat_id=-1,
+        header_text=ru('<b>✅ Транзакции по заказам успешно выполнены.</b>'),
+        orders=event.stars_orders
+    ).build_menu(tg_ui)
+    hub.telegram.send_notification(
+        NotificationChannels.INFO,
+        menu.total_text,
+        reply_markup=menu.total_keyboard(convert=True)
     )
-    hub.telegram.send_notification(NotificationChannels.INFO, message_text)
 
 
 @router.on_event(event_filter=events.StarsOrdersPackFailedEvent.__event_name__)
-async def err_tg_notification(hub: FPH, event: events.StarsOrdersPackFailedEvent):
+async def err_tg_notification(
+    hub: FPH,
+    event: events.StarsOrdersPackFailedEvent,
+    tg_ui: UIRegistry
+):
     orders = [i for i in event.stars_orders if not i.retries_left]
     if not orders:
         return
 
-    message_text = ru(
-        '<b>❌ Ошибка при трансфере TON для заказов {order_ids}.</b>',
-        order_ids=', '.join(f'<code>{i.order_id}</code>' for i in orders),
+    menu = await OrdersListMenuContext(
+        menu_id='autostars:orders_list',
+        chat_id=-1,
+        header_text=ru('<b>❌ Ошибка при переводе TON.</b>'),
+        orders=orders
+    ).build_menu(tg_ui)
+
+    hub.telegram.send_notification(
+        NotificationChannels.ERROR,
+        menu.total_text,
+        reply_markup=menu.total_keyboard(convert=True)
     )
-    hub.telegram.send_notification(NotificationChannels.ERROR, message_text)
 
 
 @router.on_event(event_filter=events.StarsOrderCompletedEvent.__event_name__)

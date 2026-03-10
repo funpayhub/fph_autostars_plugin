@@ -129,6 +129,9 @@ async def update_order_username(
 
     order_id = args[0]
 
+    if order_id in CHECKING_ORDER_USERNAMES:
+        return
+
     order = await autostars_provider.storage.get_order(order_id)
     if not order or order.funpay_chat_id != message.chat_id:
         return

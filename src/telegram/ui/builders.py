@@ -13,6 +13,7 @@ from autostars.src.telegram.ui.context import (
     OldOrdersMenuContext,
     StarsOrderMenuContext,
     OldOrdersListMenuContext,
+    OrdersListMenuContext
 )
 
 from funpayhub.lib.translater import translater
@@ -305,3 +306,44 @@ class OldOrdersListMenuBuilder(
             funpay_username=order.order_preview.counterparty.username,
             telegram_username=order.telegram_username,
         )
+
+
+class OrdersListMenuBuilder(
+    MenuBuilder,
+    menu_id='autostars:orders_list',
+    context_type=OrdersListMenuContext,
+):
+    async def build(self, ctx: OrdersListMenuContext) -> Menu:
+        menu = Menu(finalizer=StripAndNavigationFinalizer())
+        menu.header_text = ctx.header_text
+
+        orders = ctx.orders[ctx.view_page * 25 : ctx.view_page * 25 + 25]
+        menu.header_keyboard = await build_view_navigation_buttons(
+            ctx,
+            math.ceil(len(ctx.orders) / 25),
+        )
+        menu.main_text = '\n'.join(self.gen_order_text(i) for i in orders)
+        return menu
+
+    def gen_order_text(self, order: StarsOrder):
+        if order.status is not StarsOrderStatus.ERROR:
+            text = ru(
+                '<b><a href="https://funpay.com/orders/{order_id}/">{order_id}</a> | '
+                '{stars_amount} ⭐ | {funpay_username} (@{telegram_username})</b>',
+                order_id=order.order_id,
+                stars_amount=order.stars_amount,
+                funpay_username=order.order_preview.counterparty.username,
+                telegram_username=order.telegram_username,
+            )
+        else:
+            text = ru(
+                '<b><a href="https://funpay.com/orders/{order_id}/">{order_id}</a> | '
+                '{stars_amount} ⭐ | {funpay_username} (@{telegram_username})\n{error}</b>\n',
+                order_id=order.order_id,
+                stars_amount=order.stars_amount,
+                funpay_username=order.order_preview.counterparty.username,
+                telegram_username=order.telegram_username,
+                error=ru(order.error.desc) if order.error else 'no error'
+            )
+
+        return text

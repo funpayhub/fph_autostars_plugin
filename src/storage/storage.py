@@ -25,6 +25,9 @@ class Storage(ABC):
     @abstractmethod
     async def add_or_update_orders(self, *orders: StarsOrder) -> None: ...
 
+    # @abstractmethod
+    # async def update_orders(self, *order_ids: str, **kwargs: Any) -> None: ...
+
     @abstractmethod
     async def get_order(self, order_id: str) -> StarsOrder | None: ...
 
@@ -166,7 +169,7 @@ class Sqlite3Storage(Storage):
             for row in await cursor.fetchall()
         }
 
-    async def get_ready_orders(self, instance_id: str, amount=25) -> dict[str, StarsOrder]:
+    async def get_ready_orders(self, instance_id: str, amount=65) -> dict[str, StarsOrder]:
         sql = (
             'SELECT * FROM orders '
             "WHERE (status = 'READY' OR (status = 'ERROR' AND retries_left > 0)) AND hub_instance = ? "
@@ -191,11 +194,11 @@ class Sqlite3Storage(Storage):
             ],
         )
 
-        orders = {
+        orders = [
             i
             for i in o_dict.values()
             if not (i.status is StarsOrderStatus.ERROR and not i.retries_left)
-        }
+        ]
 
         if not orders:
             return {}

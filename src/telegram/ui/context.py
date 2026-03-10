@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 
-__all__ = ['StarsOrderMenuContext', 'OldOrdersMenuContext']
+__all__ = [
+    'StarsOrderMenuContext',
+    'OldOrdersMenuContext',
+    'OldOrdersListMenuContext',
+    'OrdersListMenuContext'
+]
 
 
 from typing import TYPE_CHECKING
@@ -47,3 +52,9 @@ class OldOrdersListMenuContext(MenuContext):
         super().__post_init__()
         if isinstance(self.orders_status, str):
             self.orders_status = StarsOrderStatus(self.orders_status)
+
+
+@dataclass(kw_only=True)
+class OrdersListMenuContext(MenuContext):
+    header_text: str | None = None
+    orders: list[StarsOrder]
