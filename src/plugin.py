@@ -31,6 +31,7 @@ from .types.enums import (
     ErrorTypes,
     StarsOrderStatus as SOS,
 )
+from .handlers import router as autostars_internal_router
 from .fragment_api import FragmentAPI
 from .autostars_provider import AutostarsProvider
 from .transferer_service import TransferrerService
@@ -91,7 +92,7 @@ class AutostarsPlugin(Plugin):
         return funpay_router
 
     async def hub_routers(self) -> HubRouter | list[HubRouter]:
-        return fph_router
+        return [fph_router, autostars_internal_router]
 
     async def commands(self) -> Command | list[Command] | None:
         return [
