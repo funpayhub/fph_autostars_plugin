@@ -29,6 +29,7 @@ class AutostarsProperties(Properties):
 
         self.wallet = self.attach_node(WalletProperties())
         self.messages = self.attach_node(MessagesProperties())
+        self.other = self.attach_node(Other())
 
 
 class WalletProperties(Properties):
@@ -128,7 +129,7 @@ class MessagesProperties(Properties):
                     'Проверьте правильность введенного юзернейма и введите команду:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
-                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
+                flags=[TelegramUIEmojiFlag('🤡'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -142,7 +143,7 @@ class MessagesProperties(Properties):
                     'Проверьте правильность введенного юзернейма и введите команду:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
-                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
+                flags=[TelegramUIEmojiFlag('🤡'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -157,7 +158,7 @@ class MessagesProperties(Properties):
                     'Пожалуйста, укажите юзернейм, который принадлежит пользователю в команде:\n'
                     '/stars $order<id> ваш_телеграм_юзернейм'
                 ),
-                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
+                flags=[TelegramUIEmojiFlag('🤡'), ParameterFlags.HIDE_VALUE],
             ),
         )
 
@@ -170,8 +171,9 @@ class MessagesProperties(Properties):
                     '❌ $order<counterparty.username>, похоже, вы заблокировали мой Telegram аккаунт, поэтому я не могу перевести вам звезды.\n\n'
                     'Разблокируйте мой аккаунт и введите команду:\n'
                     '/stars $order<id>'
-                )
-            )
+                ),
+                flags=[TelegramUIEmojiFlag('🤡'), ParameterFlags.HIDE_VALUE],
+            ),
         )
 
         self.failed_to_fetch_username_message = self.attach_node(
@@ -197,4 +199,24 @@ class MessagesProperties(Properties):
                 default_value='',
                 flags=[TelegramUIEmojiFlag('📝'), ParameterFlags.HIDE_VALUE],
             ),
+        )
+
+
+class Other(Properties):
+    def __init__(self):
+        super().__init__(
+            id='other',
+            name='Прочее',
+            description='Прочие настройки плагина.',
+            flags=[TelegramUIEmojiFlag('🔩')],
+        )
+
+
+        self.refund_on_error = self.attach_node(
+            ToggleParameter(
+                id='refund_on_error',
+                name='Возврат средств при ошибке',
+                description='Возвращать ли средства за заказ при ошибке перевода TON.',
+                default_value=False,
+            )
         )
