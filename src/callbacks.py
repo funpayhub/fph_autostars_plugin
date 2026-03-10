@@ -61,9 +61,6 @@ class Callbacks:
         for i in orders:
             await self.hub.dispatcher.event_entry(events.StarsOrderUsernameCheckFailed(i))
 
-    async def on_transaction_started(self, order: StarsOrder) -> None:
-        ...
-
     async def on_successful_transaction(self, *orders: StarsOrder) -> None:
         await self.hub.dispatcher.event_entry(events.StarsOrdersPackCompletedEvent(list(orders)))
         for i in orders:

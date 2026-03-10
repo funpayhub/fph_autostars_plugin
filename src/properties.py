@@ -91,16 +91,6 @@ class MessagesProperties(Properties):
             ),
         )
 
-        self.transaction_started_message = self.attach_node(
-            StringParameter(
-                id='transaction_started_message',
-                name='Сообщение о старте транзакции',
-                description='Сообщение, которое будет отправлено в чат покупателю, когда транзакция будет инициализирована.',
-                default_value='',
-                flags=[TelegramUIEmojiFlag('♻️'), ParameterFlags.HIDE_VALUE],
-            ),
-        )
-
         self.transaction_completed_message = self.attach_node(
             StringParameter(
                 id='transaction_completed_message',
@@ -142,6 +132,20 @@ class MessagesProperties(Properties):
             ),
         )
 
+        self.username_not_found_message = self.attach_node(
+            StringParameter(
+                id='username_not_found_message',
+                name='Пользователь не найден',
+                description='Сообщение, которое будет отправлено в чат покупателю, если Telegram пользователь не найден.',
+                default_value=(
+                    '❌ $order<counterparty.username>, не удалось найти Telegram аккаунт с юзернеймом @$autostars_username.\n\n'
+                    'Проверьте правильность введенного юзернейма и введите команду:\n'
+                    '/stars $order<id> ваш_телеграм_юзернейм'
+                ),
+                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
+            ),
+        )
+
         self.not_user_username_message = self.attach_node(
             StringParameter(
                 id='not_user_username_message',
@@ -157,6 +161,19 @@ class MessagesProperties(Properties):
             ),
         )
 
+        self.blocked_by_user_message = self.attach_node(
+            StringParameter(
+                id='blocked_by_user_message',
+                name='Заблокирован пользователем',
+                description='Сообщение, которое будет отправлено в чат покупателю, если пользователь заблокировал ваш Telegram аккаунт.',
+                default_value=(
+                    '❌ $order<counterparty.username>, похоже, вы заблокировали мой Telegram аккаунт, поэтому я не могу перевести вам звезды.\n\n'
+                    'Разблокируйте мой аккаунт и введите команду:\n'
+                    '/stars $order<id>'
+                )
+            )
+        )
+
         self.failed_to_fetch_username_message = self.attach_node(
             StringParameter(
                 id='failed_to_fetch_username',
@@ -166,21 +183,7 @@ class MessagesProperties(Properties):
                     '❌ $order<counterparty.username>, не удалось проверить юзернейм @$autostars_username (ошибка на стороне Telegram).\n'
                     'Продавец уже уведомлен и спешит на помощь!\n\n'
                     'Попробуйте позже введя команду:\n'
-                    '/stars $order<id> ваш_телеграм_юзернейм'
-                ),
-                flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
-            ),
-        )
-
-        self.username_not_found_message = self.attach_node(
-            StringParameter(
-                id='username_not_found_message',
-                name='Пользователь не найден',
-                description='Сообщение, которое будет отправлено в чат покупателю, если Telegram пользователь не найден.',
-                default_value=(
-                    '❌ $order<counterparty.username>, не удалось найти Telegram аккаунт с юзернеймом @$autostars_username.\n\n'
-                    'Проверьте правильность введенного юзернейма и введите команду:\n'
-                    '/stars $order<id> ваш_телеграм_юзернейм'
+                    '/stars $order<id>'
                 ),
                 flags=[TelegramUIEmojiFlag('👤'), ParameterFlags.HIDE_VALUE],
             ),

@@ -35,7 +35,11 @@ orderid_re = re.compile(r'[A-Z0-9]{8}')
 _CHECK_USERNAME_ERRORS = {
     'no telegram users found.': ErrorTypes.USERNAME_NOT_FOUND,
     'please enter a username assigned to a user.': ErrorTypes.NOT_USER_USERNAME,
+    'you can&#39;t gift telegram stars to this account at this moment.': ErrorTypes.BLOCKED_BY_USER
 }
+
+
+CHECKING_ORDER_USERNAMES = set()
 
 
 async def check_username(o: StarsOrder, api: FragmentAPI) -> StarsOrder:
@@ -60,6 +64,10 @@ async def check_username(o: StarsOrder, api: FragmentAPI) -> StarsOrder:
 
 
 async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider, cbs: Callbacks):
+    global CHECKING_ORDER_USERNAMES
+    order_ids = {i.order_id for i in orders}
+    CHECKING_ORDER_USERNAMES.update(order_ids)
+
     checked: dict[StarsOrderStatus, list[StarsOrder]] = defaultdict(list)
     storage = provider.storage
 
@@ -80,6 +88,7 @@ async def check_usernames(orders: list[StarsOrder], provider: AutostarsProvider,
     for i in r:
         checked[i.status].append(i)
     await storage.add_or_update_orders(*chain(*checked.values()))
+    CHECKING_ORDER_USERNAMES.difference_update(order_ids)
 
     if checked[StarsOrderStatus.WAITING_FOR_USERNAME]:
         asyncio.create_task(
@@ -115,10 +124,10 @@ async def update_order_username(
     autostars_callbacks: Callbacks,
 ):
     args = message.text.split(' ')[1:]
-    if len(args) < 2:
+    if len(args) < 1:
         return
 
-    order_id, username = args[0], args[1].replace('@', '')
+    order_id = args[0]
 
     order = await autostars_provider.storage.get_order(order_id)
     if not order or order.funpay_chat_id != message.chat_id:
@@ -130,6 +139,11 @@ async def update_order_username(
     if order.status is not StarsOrderStatus.WAITING_FOR_USERNAME:
         return
 
-    order.telegram_username = username
+    if len(args) < 2 and order.error not in [ErrorTypes.UNABLE_TO_FETCH_USERNAME, ErrorTypes.BLOCKED_BY_USER]:
+        return
+
+    order.telegram_username = args[1] if len(args) > 1 else order.telegram_username
+    order.status = StarsOrderStatus.WAITING_FOR_USERNAME
+
     await autostars_provider.storage.add_or_update_orders(order)
     asyncio.create_task(check_usernames([order], autostars_provider, autostars_callbacks))
