@@ -97,6 +97,30 @@ async def err_tg_notification(
     )
 
 
+@router.on_event(event_filter=events.StarsOrdersPackUsernameCheckFailed.__event_name__)
+async def err_username_notification(
+    hub: FPH,
+    event: events.StarsOrdersPackFailedEvent,
+    tg_ui: UIRegistry
+):
+    menu = await OrdersListMenuContext(
+        menu_id='autostars:orders_list',
+        chat_id=-1,
+        header_text=ru(
+            '<b>❌ Ошибка при проверке юзернейма '
+            '(покупателям необходимо попробовать позже с помощью команды '
+            '<code>/stars ORDERID</code>).</b>'
+        ),
+        orders=event.stars_orders
+    ).build_menu(tg_ui)
+
+    hub.telegram.send_notification(
+        NotificationChannels.ERROR,
+        menu.total_text,
+        reply_markup=menu.total_keyboard(convert=True)
+    )
+
+
 @router.on_event(event_filter=events.StarsOrderCompletedEvent.__event_name__)
 async def success_fp_notification(
     stars_order: StarsOrder, plugin_properties: AutostarsProperties, hub: FPH

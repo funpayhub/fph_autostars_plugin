@@ -43,6 +43,7 @@ CHECKING_ORDER_USERNAMES = set()
 
 
 async def check_username(o: StarsOrder, api: FragmentAPI) -> StarsOrder:
+
     for i in range(3):
         try:
             r = await api.search_stars_recipient(o.telegram_username)
