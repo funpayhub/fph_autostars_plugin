@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from dataclasses import dataclass
+from enum import Enum, auto
 
 from funpayhub.lib.telegram.fsm import State
 
@@ -18,3 +19,17 @@ class ViewingOrderInfo(State, identifier='autostars:viewing-order-info'):
 @dataclass
 class MarkingAsDoneState(State, identifier='autostars:marking-as-done'):
     state_message: Message
+
+
+
+class Action(Enum):
+    mark_done = auto()
+    mark_refunded = auto()
+    dont_ignore = auto()
+    delete = auto()
+
+
+@dataclass
+class OrdersActionState(State, identifier='autostars:orders-action-state'):
+    state_message: Message
+    action: Action
