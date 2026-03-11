@@ -159,8 +159,14 @@ async def _mark_orders(
     return text.strip()
 
 
-async def _set_state(message: Message, state: FSM, tg_ui: UI, action: states.Action):
-    args = message.text.split(' ')[1:]
+async def _set_state(
+    message: Message,
+    state: FSM,
+    tg_ui: UI,
+    action: states.Action,
+    from_cmd: bool = True
+) -> list[str] | None:
+    args = message.text.split(' ', 1)[1:] if from_cmd else [message.text]
     order_ids = _extract_order_ids(args[0]) if args else []
     if order_ids:
         return order_ids
@@ -171,6 +177,7 @@ async def _set_state(message: Message, state: FSM, tg_ui: UI, action: states.Act
         text=ru('<b>❓ Укажите ID одного и более заказов (через пробел или запятую).</b>')
     ).build_and_answer(tg_ui, message)
     await states.OrdersActionState(state_message=msg, action=action).set(state)
+    return None
 
 
 @router.message(Command('stars_mark_done'))
@@ -198,7 +205,7 @@ async def do_orders_action(message: Message, autostars_storage: Storage, state: 
     obj = await states.OrdersActionState.get(state)
     await states.OrdersActionState.clear(state)
 
-    order_ids = await _set_state(message, state, tg_ui, obj.action)
+    order_ids = await _set_state(message, state, tg_ui, obj.action, from_cmd=False)
     if not order_ids:
         delete_message(obj.state_message)
         return

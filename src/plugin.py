@@ -104,14 +104,32 @@ class AutostarsPlugin(Plugin):
             ),
             Command(
                 source=self.manifest.plugin_id,
+                command='stars_old_orders',
+                description=ru('[AutoStars] Незаконченные заказы с прошлых запусков.'),
+                setup=True,
+            ),
+            Command(
+                source=self.manifest.plugin_id,
                 command='stars_mark_done',
                 description=ru('[AutoStars] Пометить заказы как выполненные.'),
                 setup=True,
             ),
             Command(
                 source=self.manifest.plugin_id,
-                command='stars_old_orders',
-                description=ru('[AutoStars] Незаконченные заказы с прошлых запусков.'),
+                command='stars_mark_refunded',
+                description=ru('[AutoStars] Пометить заказы как возвращенные.'),
+                setup=True,
+            ),
+            Command(
+                source=self.manifest.plugin_id,
+                command='stars_dont_ignore',
+                description=ru('[AutoStars] Не игнорировать заказы.'),
+                setup=True,
+            ),
+            Command(
+                source=self.manifest.plugin_id,
+                command='stars_delete',
+                description=ru('[AutoStars] Удалить заказы.'),
                 setup=True,
             ),
         ]
