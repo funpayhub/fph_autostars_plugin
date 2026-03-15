@@ -216,7 +216,7 @@ class Other(Properties):
                 id='show_sender',
                 name='Отображать отправителя',
                 description='Отображать ли отправителя в платеже.',
-                default_value=True,
+                default_value=False,
             )
         )
 
