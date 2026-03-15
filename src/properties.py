@@ -211,6 +211,15 @@ class Other(Properties):
             flags=[TelegramUIEmojiFlag('🔩')],
         )
 
+        self.show_sender = self.attach_node(
+            ToggleParameter(
+                id='show_sender',
+                name='Отображать отправителя',
+                description='Отображать ли отправителя в платеже.',
+                default_value=True,
+            )
+        )
+
         self.refund_on_error = self.attach_node(
             ToggleParameter(
                 id='refund_on_error',

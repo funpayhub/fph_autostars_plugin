@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class TransferrerService:
-    def __init__(self, provider: AutostarsProvider, callbacks: Callbacks):
+    def __init__(self, provider: AutostarsProvider, callbacks: Callbacks, show_sender: bool = False):
         self._provider = provider
         self._hub = callbacks.hub
         self._loop_stopped = False
@@ -31,6 +31,8 @@ class TransferrerService:
 
         self._stop = asyncio.Event()
         self._stopped = asyncio.Event()
+
+        self.show_sender = show_sender
 
     async def main_loop(self) -> None:
         try:
@@ -115,7 +117,7 @@ class TransferrerService:
     ) -> tuple[StarsOrder, Transfer | None]:
         try:
             req = await api.init_buy_stars_request(o.recipient_id, o.stars_amount)
-            link = await api.get_buy_stars_link(req.request_id)
+            link = await api.get_buy_stars_link(req.request_id, self.show_sender)
         except Exception:
             logger.error('Ошибка получения ссылки по заказу %s.', o.order_id, exc_info=True)
             o.status, o.error = SOS.ERROR, ErrorTypes.UNABLE_TO_FETCH_STARS_LINK

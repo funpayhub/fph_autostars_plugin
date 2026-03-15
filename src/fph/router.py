@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+
 from funpayhub.app.dispatching import Router
 
 
@@ -11,7 +12,8 @@ if TYPE_CHECKING:
     from autostars.src.autostars_provider import AutostarsProvider
 
     from funpayhub.lib.plugin import LoadedPlugin
-    from funpayhub.lib.properties import StringParameter
+    from funpayhub.lib.properties import StringParameter, ToggleParameter
+    from autostars.src.transferer_service import TransferrerService
 
 
 router = Router(name='autostars')
@@ -39,6 +41,13 @@ async def update_fragment_api(
         plugin.properties.wallet.cookies.value,
         plugin.properties.wallet.fragment_hash.value,
     )
+
+
+@router.on_parameter_value_changed(
+    lambda parameter, plugin: parameter.path == plugin.properties.other.show_sender.path,
+)
+async def update_show_sender(autostars_service: TransferrerService, parameter: ToggleParameter):
+    autostars_service.show_sender = parameter.value
 
 
 @router.on_funpayhub_stopped()

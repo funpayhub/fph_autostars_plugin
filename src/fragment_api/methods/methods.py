@@ -43,6 +43,7 @@ class GetBuyStarsLink(FragmentMethod[BuyStarsLink]):
         validation_alias=AliasChoices('id', 'request_id'),
         serialization_alias='id',
     )
+    show_sender: bool = Field(default=False)
 
     __model_to_build__ = BuyStarsLink
 
@@ -51,9 +52,16 @@ class GetBuyStarsLink(FragmentMethod[BuyStarsLink]):
         return 'getBuyStarsLink'
 
     @computed_field
-    def show_sender(self) -> str:
-        return '0'
-
-    @computed_field
     def transaction(self) -> str:
         return '1'
+
+    @field_serializer('show_sender', mode='plain')
+    def serialize_show_sender(self, show_sender: bool) -> str:
+        return str(int(show_sender))
+
+    @field_validator('show_sender', mode='before')
+    @classmethod
+    def validate_show_sender(cls, v: Any) -> Any:
+        if isinstance(v, str) and v.isnumeric():
+            return bool(int(v))
+        return v

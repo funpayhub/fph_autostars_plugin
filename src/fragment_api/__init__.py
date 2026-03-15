@@ -42,14 +42,9 @@ class FragmentAPI:
             self.hash,
         )
 
-    async def get_buy_stars_link(self, request_id: str) -> BuyStarsLink:
+    async def get_buy_stars_link(self, request_id: str, show_sender: bool = False) -> BuyStarsLink:
         return await self.session.post(
-            GetBuyStarsLink(request_id=request_id),
+            GetBuyStarsLink(request_id=request_id, show_sender=show_sender),
             self.cookies,
             self.hash,
         )
-
-    async def auto_get_buy_stars_link(self, username: str, quantity: int = 50) -> BuyStarsLink:
-        recipient = await self.search_stars_recipient(username)
-        init = await self.init_buy_stars_request(recipient.found.recipient, quantity)
-        return await self.get_buy_stars_link(init.request_id)

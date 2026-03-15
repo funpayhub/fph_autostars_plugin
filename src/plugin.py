@@ -191,7 +191,9 @@ class AutostarsPlugin(Plugin):
                     ),
                 )
 
-        self.transfer_service = TransferrerService(self.provider, self.callbacks)
+        self.transfer_service = TransferrerService(
+            self.provider, self.callbacks, self.props.other.show_sender.value
+        )
 
         self.hub.workflow_data.update(
             {
