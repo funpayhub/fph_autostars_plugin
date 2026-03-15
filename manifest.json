@@ -4,7 +4,7 @@
   "app_version": ">=0.4.14",
   "plugin_id": "com.github.qvvonk.funpayhub.autostars_plugin",
   "name": "Autostars",
-  "dependencies": ["pytoniq~=0.1.43"],
+  "dependencies": ["pytoniq~=0.1.43", "aiosqlite~=0.22.1"],
   "description": "Позволяет автоматически продавать Telegram звезды. Есть возможность настраивать тексты ответов, комментариев к транзакциям с кастомными форматтерами.",
   "repo": "https://github.com/funpayhub/fph_autostars_plugin",
   "author": {
