@@ -24,6 +24,7 @@ from funpayhub.app.telegram.ui.builders.context import StateUIContext
 
 if TYPE_CHECKING:
     from aiogram.types import Message
+    from aiogram.filters import CommandObject
     from autostars.src.storage import Storage
     from funpayhub.lib.telegram.ui import UIRegistry as UI
     from aiogram.fsm.context import FSM
@@ -183,11 +184,11 @@ async def _set_state(
 @router.message(Command('stars_mark_done'))
 @router.message(Command('stars_mark_refunded'))
 @router.message(Command('stars_dont_ignore'))
-async def mark_done(message: Message, autostars_storage: Storage, state: FSM, tg_ui: UI, command: str):
-    if not (ids := await _set_state(message, state, tg_ui, cmds[command])):
+async def mark_done(message: Message, autostars_storage: Storage, state: FSM, tg_ui: UI, command: CommandObject):
+    if not (ids := await _set_state(message, state, tg_ui, cmds[command.command])):
         return
 
-    text = await _mark_orders(ids, autostars_storage, **actions[cmds[command]])
+    text = await _mark_orders(ids, autostars_storage, **actions[cmds[command.command]])
     await message.answer(text)
 
 
