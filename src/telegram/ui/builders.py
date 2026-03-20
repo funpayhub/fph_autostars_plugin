@@ -20,7 +20,7 @@ from funpayhub.lib.translater import translater
 from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext
 from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import (
     StripAndNavigationFinalizer,
-    build_view_navigation_buttons,
+    build_view_navigation_btns,
 )
 
 from funpayhub.app.telegram.ui.premade import confirmable_button
@@ -160,7 +160,7 @@ class OldOrdersNotificationMenuBuilder(
                 text=ru('🔘 Необработанные заказы'),
                 callback_data=ListOldOrders(
                     status=StarsOrderStatus.UNPROCESSED,
-                    from_callback=ctx.callback_data,
+                    ui_history=ctx.as_ui_history(),
                 ).pack(),
             )
 
@@ -176,7 +176,7 @@ class OldOrdersNotificationMenuBuilder(
                 text=ru('⏳ Ожидающие юзернейм'),
                 callback_data=ListOldOrders(
                     status=StarsOrderStatus.WAITING_FOR_USERNAME,
-                    from_callback=ctx.callback_data,
+                    ui_history=ctx.as_ui_history(),
                 ).pack(),
             )
 
@@ -191,7 +191,7 @@ class OldOrdersNotificationMenuBuilder(
                 text=ru('⚡ Готовые к выполнению'),
                 callback_data=ListOldOrders(
                     status=StarsOrderStatus.READY,
-                    from_callback=ctx.callback_data,
+                    ui_history=ctx.as_ui_history(),
                 ).pack(),
             )
 
@@ -206,7 +206,7 @@ class OldOrdersNotificationMenuBuilder(
                 text=ru('⁉️ Заказы с ошибкой'),
                 callback_data=ListOldOrders(
                     status=StarsOrderStatus.ERROR,
-                    from_callback=ctx.callback_data,
+                    ui_history=ctx.as_ui_history(),
                 ).pack(),
             )
 
@@ -233,7 +233,7 @@ class OldOrdersListMenuBuilder(
         )
 
         orders = ctx.orders[ctx.view_page * 50 : ctx.view_page * 50 + 50]
-        menu.header_keyboard = await build_view_navigation_buttons(
+        menu.header_keyboard = await build_view_navigation_btns(
             ctx,
             math.ceil(len(ctx.orders) / 50),
         )
@@ -247,50 +247,42 @@ class OldOrdersListMenuBuilder(
                 confirmable_button(
                     ctx,
                     text='♻️ Не игнорировать',
-                    confirm_id='dont_ignore',
-                    translater=translater,
+                    button_id='dont_ignore',
                     callback_data=OldOrdersAction(
                         status=ctx.orders_status,
                         action='dont_ignore',
-                        from_callback=ctx.callback_data,
+                        ui_history=ctx.as_ui_history()
                     ).pack(),
-                    menu_callback_data=ctx.callback_data,
                 ),
                 confirmable_button(
                     ctx,
                     text='✅ Пометить как выполненные',
-                    confirm_id='mark_done',
-                    translater=translater,
+                    button_id='mark_done',
                     callback_data=OldOrdersAction(
                         status=ctx.orders_status,
                         action='mark_done',
-                        from_callback=ctx.callback_data,
+                        ui_history=ctx.as_ui_history(),
                     ).pack(),
-                    menu_callback_data=ctx.callback_data,
                 ),
                 confirmable_button(
                     ctx,
                     text='💸 Пометить как возвращенные',
-                    confirm_id='mark_refunded',
-                    translater=translater,
+                    button_id='mark_refunded',
                     callback_data=OldOrdersAction(
                         status=ctx.orders_status,
                         action='mark_refunded',
-                        from_callback=ctx.callback_data,
+                        ui_history=ctx.as_ui_history(),
                     ).pack(),
-                    menu_callback_data=ctx.callback_data,
                 ),
                 confirmable_button(
                     ctx,
                     text='🗑️ Удалить',
-                    confirm_id='delete',
-                    translater=translater,
+                    button_id='delete',
                     callback_data=OldOrdersAction(
                         status=ctx.orders_status,
                         action='delete',
-                        from_callback=ctx.callback_data,
+                        ui_history=ctx.as_ui_history(),
                     ).pack(),
-                    menu_callback_data=ctx.callback_data,
                     style='danger',
                 ),
             )
@@ -318,7 +310,7 @@ class OrdersListMenuBuilder(
         menu.header_text = ctx.header_text
 
         orders = ctx.orders[ctx.view_page * 25 : ctx.view_page * 25 + 25]
-        menu.header_keyboard = await build_view_navigation_buttons(
+        menu.header_keyboard = await build_view_navigation_btns(
             ctx,
             math.ceil(len(ctx.orders) / 25),
         )
