@@ -41,7 +41,6 @@ async def check_old_orders(q: Query, autostars_provider: AutostarsProvider, hub:
 @router.callback_query(cbs.ListOldOrders.filter())
 async def list_old_orders(
     q: Query,
-    tg_ui: UI,
     autostars_provider: AutostarsProvider,
     hub: FPH,
     cbd: ListOldOrders,
