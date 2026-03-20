@@ -45,15 +45,14 @@ class StarsOrderInfoMenuBuilder(
         menu.header_text = '🌟 <b>Заказ <a href="https://funpay.com/orders/{order_id}/">{order_id}</a></b>'.format(
             order_id=ctx.stars_order.order_id,
         )
-        menu.main_text = (
+        menu.main_text = ru(
             '<blockquote><b>{message}</b></blockquote>\n\n'
             '🤠 <b><i>Покупатель: {buyer}</i></b>\n'
             '✨ <b><i>Кол-во: {stars_amount}</i></b>\n'
             '👤 <b><i>Telegram: @{telegram_username}</i></b>\n'
             '🐙 <b><i>FunPay Hub ID:</i></b> <code>{hub_instance}</code>\n'
             '♻️ <b><i>Осталось попыток: {attempts}</i></b>\n'
-            '📍 <b><i>Статус: {status}</i></b>\n'
-        ).format(
+            '📍 <b><i>Статус: {status}</i></b>\n',
             message=html.escape(ctx.stars_order.message_obj.text),
             buyer=ctx.stars_order.order_preview.counterparty.username,
             stars_amount=ctx.stars_order.stars_amount,

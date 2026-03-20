@@ -10,7 +10,6 @@ __all__ = [
 
 
 from typing import TYPE_CHECKING
-from dataclasses import dataclass
 
 from autostars.src.types.enums import StarsOrderStatus
 
@@ -21,12 +20,10 @@ if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
 
 
-@dataclass(kw_only=True)
 class StarsOrderMenuContext(MenuContext):
     stars_order: StarsOrder
 
 
-@dataclass(kw_only=True)
 class OldOrdersMenuContext(MenuContext):
     unprocessed_orders: int
     waiting_username_orders: int
@@ -43,18 +40,11 @@ class OldOrdersMenuContext(MenuContext):
         )
 
 
-@dataclass(kw_only=True)
 class OldOrdersListMenuContext(MenuContext):
     orders_status: StarsOrderStatus
     orders: list[StarsOrder]
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        if isinstance(self.orders_status, str):
-            self.orders_status = StarsOrderStatus(self.orders_status)
 
-
-@dataclass(kw_only=True)
 class OrdersListMenuContext(MenuContext):
     header_text: str | None = None
     orders: list[StarsOrder]

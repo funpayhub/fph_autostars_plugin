@@ -11,13 +11,11 @@ from autostars.src.telegram.ui.context import OldOrdersMenuContext, OldOrdersLis
 
 from funpayhub.lib.translater import translater
 
-from funpayhub.app.main import FunPayHub
-
-
 if TYPE_CHECKING:
-    from aiogram.types import CallbackQuery
+    from aiogram.types import CallbackQuery as Query
 
-    from funpayhub.lib.telegram.ui import UIRegistry
+    from funpayhub.lib.telegram.ui import UIRegistry as UI
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 router = Router(name='autostars:queries')
@@ -25,76 +23,64 @@ ru = translater.translate
 
 
 @router.callback_query(cbs.CheckOldOrders.filter())
-async def check_old_orders(
-    query: CallbackQuery,
-    tg_ui: UIRegistry,
-    autostars_provider: AutostarsProvider,
-    hub: FunPayHub,
-):
+async def check_old_orders(q: Query, autostars_provider: AutostarsProvider, hub: FPH):
     orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
     if not orders:
-        await query.answer(
-            ru('✅ Нет незаконченных заказов с прошлых запусков.'),
-            show_alert=True,
-        )
-        return
+        return q.answer(ru('✅ Нет незаконченных заказов с прошлых запусков.'), show_alert=True)
 
     await OldOrdersMenuContext(
         menu_id='autostars:old_orders_notification',
-        trigger=query,
+        trigger=q,
         errored_orders=len(orders.get(StarsOrderStatus.ERROR, [])),
         waiting_username_orders=len(orders.get(StarsOrderStatus.WAITING_FOR_USERNAME, [])),
         ready_orders=len(orders.get(StarsOrderStatus.READY, [])),
         unprocessed_orders=len(orders.get(StarsOrderStatus.UNPROCESSED, [])),
-        callback_override=cbs.CheckOldOrders(),
-    ).build_and_apply(tg_ui, query.message)
+    ).apply_to()
 
 
 @router.callback_query(cbs.ListOldOrders.filter())
 async def list_old_orders(
-    query: CallbackQuery,
-    tg_ui: UIRegistry,
+    q: Query,
+    tg_ui: UI,
     autostars_provider: AutostarsProvider,
-    hub: FunPayHub,
-    callback_data: ListOldOrders,
+    hub: FPH,
+    cbd: ListOldOrders,
 ):
     orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
-    if not orders.get(callback_data.status, []):
-        await query.answer(
+    if not orders.get(cbd.status, []):
+        return q.answer(
             ru(
                 '✅ Нет заказов с прошлых запусков со статусом {status}.',
-                status=ru(callback_data.status.desc).lower(),
+                status=ru(cbd.status.desc).lower(),
             ),
             show_alert=True,
         )
-        return
 
     await OldOrdersListMenuContext(
         menu_id='autostars:old_orders_list',
-        trigger=query,
-        orders_status=callback_data.status,
-        orders=orders[callback_data.status],
-    ).build_and_apply(tg_ui, query.message)
+        trigger=q,
+        orders_status=cbd.status,
+        orders=orders[cbd.status],
+    ).apply_to()
 
 
 @router.callback_query(cbs.OldOrdersAction.filter())
 async def old_orders_action(
-    query: CallbackQuery,
+    q: Query,
     callback_data: cbs.OldOrdersAction,
     autostars_provider: AutostarsProvider,
-    hub: FunPayHub,
+    hub: FPH,
 ):
     orders_dict = await autostars_provider.storage.get_old_orders(hub.instance_id)
     orders = orders_dict.get(callback_data.status, [])
     if not orders:
-        await query.answer(
+        return q.answer(
             ru(
                 '✅ Нет заказов с прошлого запуска со статусом "{status}".',
                 status=ru(callback_data.status.desc).lower(),
             ),
             show_alert=True,
         )
-        return
 
     if callback_data.action == 'dont_ignore':
         for i in orders:
@@ -130,4 +116,4 @@ async def old_orders_action(
     else:
         msg = ru('❌ Неизвестное действие.')
 
-    await query.answer(msg, show_alert=True)
+    await q.answer(msg, show_alert=True)

@@ -17,7 +17,6 @@ from funpayhub.lib.translater import translater
 from funpayhub.lib.telegram.ui import MenuContext
 from funpayhub.lib.base_app.telegram.utils import delete_message
 
-from funpayhub.app.main import FunPayHub
 from funpayhub.app.telegram.ui.ids import MenuIds
 from funpayhub.app.telegram.ui.builders.context import StateUIContext
 
@@ -27,7 +26,8 @@ if TYPE_CHECKING:
     from aiogram.filters import CommandObject
     from autostars.src.storage import Storage
     from funpayhub.lib.telegram.ui import UIRegistry as UI
-    from aiogram.fsm.context import FSM
+    from aiogram.fsm.context import FSMContext as FSM
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 router = Router(name='autostars')
@@ -35,66 +35,61 @@ ru = translater.translate
 ORDERS_SEP_RE = re.compile('[,;\s]+')
 
 
-async def _show_order_info_helper(order_id: str, message: Message, storage: Storage, tg_ui: UI):
+async def _show_order_info_helper(order_id: str, m: Message, storage: Storage):
     order = await storage.get_order(order_id)
     if order is None:
-        await message.answer('❌ <b>Заказ {order_id} не найден.</b>'.format(order_id=order_id))
+        await m.answer(ru('❌ <b>Заказ {order_id} не найден.</b>', order_id=order_id))
         return
 
     await StarsOrderMenuContext(
         menu_id='autostars:stars_order_info',
-        trigger=message,
+        trigger=m,
         stars_order=order,
-    ).build_and_answer(tg_ui, message)
+    ).answer_to()
 
 
 @router.message(Command('stars_order_info'))
-async def order_info(message: Message, autostars_storage: Storage, tg_ui: UI, state: FSM):
-    args = message.text.split(' ')[1:]
+async def order_info(m: Message, autostars_storage: Storage, state: FSM):
+    args = m.text.split(' ')[1:]
     if not args:
         msg = await StateUIContext(
             menu_id=MenuIds.state_menu,
-            trigger=message,
+            trigger=m,
             text='<b>❓ Укажите ID заказа.</b>',
-        ).build_and_answer(tg_ui, message)
+        ).answer_to()
         await states.ViewingOrderInfo(state_message=msg).set(state)
         return
 
     order_id = args[0]
-    await _show_order_info_helper(order_id, message, autostars_storage, tg_ui)
+    await _show_order_info_helper(order_id, m, autostars_storage)
 
 
 @router.message(states.ViewingOrderInfo.filter(), lambda message: message.text)
-async def order_info2(message: Message, autostars_storage: Storage, tg_ui: UI, state: FSM):
-    obj = await states.ViewingOrderInfo.get(state)
-    await states.ViewingOrderInfo.clear(state)
-    await _show_order_info_helper(message.text, message, autostars_storage, tg_ui)
+async def order_info2(m: Message, autostars_storage: Storage, state: FSM):
+    obj = await states.ViewingOrderInfo.clear(state)
+    await _show_order_info_helper(m.text, m, autostars_storage)
     delete_message(obj.state_message)
 
 
 @router.message(Command('stars_old_orders'))
-async def list_old_orders(message: Message, tg_ui: UI, autostars_provider: AutostarsProvider, hub: FunPayHub):
+async def list_old_orders(m: Message, autostars_provider: AutostarsProvider, hub: FPH):
     orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
     if not orders:
-        await message.answer(
-            ru('<b>✅ Нет незаконченных заказов с прошлых запусков.</b>'),
-        )
-        return
+        return m.answer(ru('<b>✅ Нет незаконченных заказов с прошлых запусков.</b>'))
 
     await OldOrdersMenuContext(
         menu_id='autostars:old_orders_notification',
-        trigger=message,
+        trigger=m,
         errored_orders=len(orders.get(StarsOrderStatus.ERROR, [])),
         waiting_username_orders=len(orders.get(StarsOrderStatus.WAITING_FOR_USERNAME, [])),
         ready_orders=len(orders.get(StarsOrderStatus.READY, [])),
         unprocessed_orders=len(orders.get(StarsOrderStatus.UNPROCESSED, [])),
-        callback_override=cbs.CheckOldOrders(),
-    ).build_and_answer(tg_ui, message)
+    ).answer_to()
 
 
 @router.message(Command('stars_status'))
-async def stars_status(message: Message, tg_ui: UI):
-    await MenuContext(menu_id='autostars:status', trigger=message).build_and_answer(tg_ui, message)
+async def stars_status(message: Message):
+    await MenuContext(menu_id='autostars:status', trigger=message).answer_to()
 
 
 # -----------------------------------------------------
@@ -161,22 +156,21 @@ async def _mark_orders(
 
 
 async def _set_state(
-    message: Message,
+    m: Message,
     state: FSM,
-    tg_ui: UI,
     action: states.Action,
     from_cmd: bool = True
 ) -> list[str] | None:
-    args = message.text.split(' ', 1)[1:] if from_cmd else [message.text]
+    args = m.text.split(' ', 1)[1:] if from_cmd else [m.text]
     order_ids = _extract_order_ids(args[0]) if args else []
     if order_ids:
         return order_ids
 
     msg = await StateUIContext(
         menu_id=MenuIds.state_menu,
-        trigger=message,
+        trigger=m,
         text=ru('<b>❓ Укажите ID одного и более заказов (через пробел или запятую).</b>')
-    ).build_and_answer(tg_ui, message)
+    ).answer_to()
     await states.OrdersActionState(state_message=msg, action=action).set(state)
     return None
 
@@ -184,29 +178,29 @@ async def _set_state(
 @router.message(Command('stars_mark_done'))
 @router.message(Command('stars_mark_refunded'))
 @router.message(Command('stars_dont_ignore'))
-async def mark_done(message: Message, autostars_storage: Storage, state: FSM, tg_ui: UI, command: CommandObject):
-    if not (ids := await _set_state(message, state, tg_ui, cmds[command.command])):
+async def mark_done(m: Message, autostars_storage: Storage, state: FSM, command: CommandObject):
+    if not (ids := await _set_state(m, state, cmds[command.command])):
         return
 
     text = await _mark_orders(ids, autostars_storage, **actions[cmds[command.command]])
-    await message.answer(text)
+    await m.answer(text)
 
 
 @router.message(Command('stars_delete'))
-async def delete(message: Message, autostars_storage: Storage, state: FSM, tg_ui: UI):
-    if not (ids := await _set_state(message, state, tg_ui, states.Action.dont_ignore)):
+async def delete(m: Message, autostars_storage: Storage, state: FSM):
+    if not (ids := await _set_state(m, state, states.Action.dont_ignore)):
         return
 
     await autostars_storage.delete_orders(*ids)
-    await message.answer(ru('<b>🗑️ Заказы {orders} удалены.</b>', orders=ids))
+    await m.answer(ru('<b>🗑️ Заказы {orders} удалены.</b>', orders=ids))
 
 
 @router.message(states.OrdersActionState.filter(), lambda message: message.text)
-async def do_orders_action(message: Message, autostars_storage: Storage, state: FSM, tg_ui: UI):
+async def do_orders_action(m: Message, autostars_storage: Storage, state: FSM):
     obj = await states.OrdersActionState.get(state)
     await states.OrdersActionState.clear(state)
 
-    order_ids = await _set_state(message, state, tg_ui, obj.action, from_cmd=False)
+    order_ids = await _set_state(m, state, obj.action, from_cmd=False)
     if not order_ids:
         delete_message(obj.state_message)
         return
@@ -219,5 +213,5 @@ async def do_orders_action(message: Message, autostars_storage: Storage, state: 
     else:
         text = ru('❌ Неизвестное действие. Отправьте это сообщение разработчику.')
 
-    await message.answer(text)
+    await m.answer(text)
     delete_message(obj.state_message)
