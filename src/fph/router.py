@@ -50,6 +50,13 @@ async def update_show_sender(autostars_service: TransferrerService, parameter: T
     autostars_service.show_sender = parameter.value
 
 
+@router.on_parameter_value_changed(
+    lambda parameter, plugin: parameter.path == plugin.properties.wallet.ton_api_token.path
+)
+async def update_ton_api_token(autostars_provider: AutostarsProvider, parameter: StringParameter):
+    autostars_provider.tonapi.token = parameter.value or None
+
+
 @router.on_funpayhub_stopped()
 async def stop_service(plugin: LoadedPlugin[AutostarsPlugin, AutostarsProperties]):
     await plugin.plugin.transfer_service.stop()

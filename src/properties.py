@@ -72,6 +72,16 @@ class WalletProperties(Properties):
             ),
         )
 
+        self.ton_api_token = self.attach_node(
+            StringParameter(
+                id='ton_api_token',
+                name='tonapi.io токен',
+                description='Токен для доступа к tonapi.io',
+                default_value='',
+                flags=[TelegramUIEmojiFlag('🔐'), ParameterFlags.PROTECT_VALUE],
+            )
+        )
+
 
 class MessagesProperties(Properties):
     def __init__(self):

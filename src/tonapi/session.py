@@ -12,7 +12,8 @@ from .exceptions import TonAPIError, TonAPIParsingError, TonAPIUnexpectedStatus
 
 
 class Session:
-    def __init__(self, session: ClientSession | None = None) -> None:
+    def __init__(self, session: ClientSession | None = None, token: str | None = None) -> None:
+        self.token = token
         self._session = session
         self._connector: TCPConnector | None = None
         self._last_request_ts = 0
@@ -43,14 +44,24 @@ class Session:
         await self.close()
 
     async def _make_request[ReturnT](self, method: TonAPIMethod[ReturnT]) -> ReturnT:
-        if time.monotonic() - self._last_request_ts < 4.1:
-            await asyncio.sleep(time.monotonic() - self._last_request_ts + 4.1)
+        interval = 4.1 if not self.token else 1.1
+        if time.monotonic() - self._last_request_ts < interval:
+            await asyncio.sleep(time.monotonic() - self._last_request_ts + interval)
+
         session = await self.session()
         data = method.model_dump_json(by_alias=True)
         path = method.get_path()
+
+        headers = None
+        if self.token:
+            headers = {'Authorization': f'Bearer {self.token}'}
+
         call = (
-            session.get(url=path) if method.method == 'GET' else session.post(url=path, data=data)
+            session.get(url=path, headers=headers)
+            if method.method == 'GET'
+            else session.post(url=path, data=data, headers=headers)
         )
+
         async with call as r:
             self._last_request_ts = time.monotonic()
             try:

@@ -15,8 +15,9 @@ if TYPE_CHECKING:
 
 
 class TonAPI:
-    def __init__(self):
-        self._session = Session()
+    def __init__(self, token: str | None = None):
+        self._session = Session(token=token)
+        self._token = token
 
     async def get_seqno(self, address: str) -> Seqno:
         return await self.session.make_request(GetSeqno(address=address))
@@ -44,3 +45,12 @@ class TonAPI:
     @property
     def session(self) -> Session:
         return self._session
+
+    @property
+    def token(self) -> str | None:
+        return self._token
+
+    @token.setter
+    def token(self, token: str | None) -> None:
+        self._token = token
+        self._session.token = token
