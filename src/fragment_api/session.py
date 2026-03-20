@@ -52,8 +52,7 @@ class Session:
     async def __aexit__(self, exc_type, exc, tb) -> None:
         await self.close()
 
-    async def post[ReturnT](
-        self,
+    async def post[ReturnT](self,
         method: FragmentMethod[ReturnT],
         cookies: str,
         hash: str,

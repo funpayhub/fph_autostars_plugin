@@ -43,8 +43,8 @@ class Session:
         await self.close()
 
     async def _make_request[ReturnT](self, method: TonAPIMethod[ReturnT]) -> ReturnT:
-        if time.monotonic() - self._last_request_ts < 1.1:
-            await asyncio.sleep(time.monotonic() - self._last_request_ts + 1.1)
+        if time.monotonic() - self._last_request_ts < 4.1:
+            await asyncio.sleep(time.monotonic() - self._last_request_ts + 4.1)
         session = await self.session()
         data = method.model_dump_json(by_alias=True)
         path = method.get_path()
