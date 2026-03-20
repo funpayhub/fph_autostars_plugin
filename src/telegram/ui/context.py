@@ -8,15 +8,12 @@ __all__ = [
 ]
 
 
-from typing import TYPE_CHECKING
-
 from autostars.src.types.enums import StarsOrderStatus
 
 from funpayhub.lib.telegram.ui import MenuContext
 
-
-if TYPE_CHECKING:
-    from autostars.src.types import StarsOrder
+# For pydantic models
+from autostars.src.types import StarsOrder
 
 
 class StarsOrderMenuContext(MenuContext):
