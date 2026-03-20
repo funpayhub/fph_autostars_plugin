@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import math
+from functools import reduce
 from typing import TYPE_CHECKING
 
 from autostars.src.types.enums import (
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     from autostars.src.types import StarsOrder
     from autostars.src.autostars_provider import AutostarsProvider
     from autostars.src.transferer_service import TransferrerService
+    from funpayhub.app.main import FunPayHub as FPH
 
 
 ru = translater.translate
@@ -135,24 +137,29 @@ class StatusMenuBuilder(
         return menu
 
 
-class OldOrdersNotificationMenuBuilder(
-    MenuBuilder,
-    menu_id='autostars:old_orders_notification',
-    context_type=OldOrdersMenuContext,
-):
-    async def build(self, ctx: OldOrdersMenuContext) -> Menu:
+class OldOrdersMenuBuilder(MenuBuilder, menu_id='autostars:old_orders', context_type=MenuContext):
+    async def build(self, ctx: MenuContext, hub: FPH, autostars_provider: AutostarsProvider) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
+        old_orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
+
+        if not old_orders:
+            menu.main_text = ru(
+                '<b>✅Нет незавершенных заказов с предыдущих запусков FunPay Hub.</b>'
+            )
+            return menu
+
+        total_len = reduce(lambda x, y: x + len(y), old_orders.values())
         menu.main_text = ru(
             '<b>⚠️ Обнаружены заказы (<code>{orders_amount}</code>), которые были инициированы во время'
             ' предыдущего запуска FunPayHub, но так и не были завершены.</b>\n\n',
-            orders_amount=ctx.total_len,
+            orders_amount=total_len,
         )
 
-        if ctx.unprocessed_orders:
+        if old_orders.get(StarsOrderStatus.UNPROCESSED):
             menu.main_text += ru(
                 '<b>🔘 Необработанные заказы (<code>{orders_amount}</code>)</b> были сохранены '
                 'в базу данных, но для них даже не была выполнена проверка Telegram юзернейма.\n\n',
-                orders_amount=ctx.unprocessed_orders,
+                orders_amount=len(old_orders[StarsOrderStatus.UNPROCESSED]),
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_unprocessed_orders',
@@ -163,12 +170,12 @@ class OldOrdersNotificationMenuBuilder(
                 ).pack(),
             )
 
-        if ctx.waiting_username_orders:
+        if old_orders.get(StarsOrderStatus.WAITING_FOR_USERNAME):
             menu.main_text += ru(
                 '<b>⏳ Заказы, ожидающие ввод валидного Telegram юзернейма (<code>{orders_amount}</code>),</b> '
                 'были созданы, но юзернеймы, которые передали покупатели, либо невалидны, '
                 'либо не были найдены.\n\n',
-                orders_amount=ctx.waiting_username_orders,
+                orders_amount=len(old_orders[StarsOrderStatus.WAITING_FOR_USERNAME]),
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_waiting_username_orders',
@@ -179,11 +186,11 @@ class OldOrdersNotificationMenuBuilder(
                 ).pack(),
             )
 
-        if ctx.ready_orders:
+        if old_orders.get(StarsOrderStatus.READY):
             menu.main_text += ru(
                 '<b>⚡ Заказы, готовые к выполнению (<code>{orders_amount}</code>)</b>, '
                 'полностью валидны, но до них так и не дошла очередь.\n\n',
-                orders_amount=ctx.ready_orders,
+                orders_amount=len(old_orders[StarsOrderStatus.READY]),
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_ready_orders',
@@ -194,11 +201,11 @@ class OldOrdersNotificationMenuBuilder(
                 ).pack(),
             )
 
-        if ctx.errored_orders:
+        if old_orders.get(StarsOrderStatus.ERROR):
             menu.main_text += ru(
                 '<b>⁉️ Заказы, по которым не удалось выполнить транзакцию '
                 '(<code>{orders_amount}</code>)</b>, но у них есть еще несколько попыток.\n\n',
-                orders_amount=ctx.errored_orders,
+                orders_amount=len(old_orders[StarsOrderStatus.ERROR]),
             )
             menu.main_keyboard.add_callback_button(
                 button_id='open_errored_orders',

@@ -8,7 +8,7 @@ from .builders import (
     StatusMenuBuilder,
     OldOrdersListMenuBuilder,
     StarsOrderInfoMenuBuilder,
-    OldOrdersNotificationMenuBuilder,
+    OldOrdersMenuBuilder,
     OrdersListMenuBuilder
 )
 
@@ -16,7 +16,7 @@ from .builders import (
 BUILDERS = [
     StarsOrderInfoMenuBuilder,
     StatusMenuBuilder,
-    OldOrdersNotificationMenuBuilder,
+    OldOrdersMenuBuilder,
     OldOrdersListMenuBuilder,
     OrdersListMenuBuilder
 ]
