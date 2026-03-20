@@ -82,7 +82,7 @@ class AutostarsPlugin(Plugin):
 
     async def properties(self) -> Properties:
         self.props = AutostarsProperties()
-        self.api.token = self.props.wallet.ton_api_token.value
+        self.api.token = self.props.wallet.ton_api_token.value or None
         return self.props
 
     async def telegram_routers(self) -> TGRouter | list[TGRouter]:
