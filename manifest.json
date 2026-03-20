@@ -1,7 +1,7 @@
 {
   "manifest": 1,
-  "plugin_version": "0.4.1",
-  "app_version": ">=0.4.14",
+  "plugin_version": "0.5.0",
+  "app_version": ">=0.5.0",
   "plugin_id": "com.github.qvvonk.funpayhub.autostars_plugin",
   "name": "Autostars",
   "dependencies": ["pytoniq~=0.1.43", "aiosqlite~=0.22.1"],
