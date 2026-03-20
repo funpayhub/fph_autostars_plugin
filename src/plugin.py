@@ -33,10 +33,9 @@ from .types.enums import (
 from .fragment_api import FragmentAPI
 from .telegram.routers import ROUTERS
 from .autostars_provider import AutostarsProvider
-from .telegram.callbacks import CheckOldOrders
 from .transferer_service import TransferrerService
-from .telegram.ui.context import OldOrdersMenuContext
 from .telegram.ui.modifications import MODIFICATIONS
+from funpayhub.lib.telegram.ui import MenuContext
 
 
 if TYPE_CHECKING:
@@ -293,16 +292,7 @@ class AutostarsPlugin(Plugin):
         if not orders_dict:
             return
 
-        menu = await OldOrdersMenuContext(
-            menu_id='autostars:old_orders_notification',
-            chat_id=-1,
-            errored_orders=len(orders_dict.get(SOS.ERROR, [])),
-            waiting_username_orders=len(orders_dict.get(SOS.WAITING_FOR_USERNAME, [])),
-            ready_orders=len(orders_dict.get(SOS.READY, [])),
-            unprocessed_orders=len(orders_dict.get(SOS.UNPROCESSED, [])),
-            callback_override=CheckOldOrders(),
-        ).build_menu(self.hub.telegram.ui_registry)
-
+        menu = await MenuContext(menu_id='autostars:old_orders').build_menu()
         self.hub.telegram.send_notification(
             NotificationChannels.INFO,
             text=menu.total_text,

@@ -23,10 +23,6 @@ StatusField = Annotated[
 ]
 
 
-class CheckOldOrders(CallbackData, identifier='autostars-check_old_orders'):
-    pass
-
-
 class ListOldOrders(CallbackData, identifier='autostars-list_old_orders'):
     status: StatusField
 

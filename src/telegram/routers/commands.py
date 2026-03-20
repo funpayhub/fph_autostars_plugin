@@ -11,7 +11,7 @@ from autostars.src.telegram import (
 )
 from autostars.src.types.enums import StarsOrderStatus
 from autostars.src.autostars_provider import AutostarsProvider
-from autostars.src.telegram.ui.context import OldOrdersMenuContext, StarsOrderMenuContext
+from autostars.src.telegram.ui.context import StarsOrderMenuContext
 
 from funpayhub.lib.translater import translater
 from funpayhub.lib.telegram.ui import MenuContext
@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from aiogram.types import Message
     from aiogram.filters import CommandObject
     from autostars.src.storage import Storage
-    from funpayhub.lib.telegram.ui import UIRegistry as UI
     from aiogram.fsm.context import FSMContext as FSM
     from funpayhub.app.main import FunPayHub as FPH
 
@@ -76,15 +75,7 @@ async def list_old_orders(m: Message, autostars_provider: AutostarsProvider, hub
     orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
     if not orders:
         return m.answer(ru('<b>✅ Нет незаконченных заказов с прошлых запусков.</b>'))
-
-    await OldOrdersMenuContext(
-        menu_id='autostars:old_orders_notification',
-        trigger=m,
-        errored_orders=len(orders.get(StarsOrderStatus.ERROR, [])),
-        waiting_username_orders=len(orders.get(StarsOrderStatus.WAITING_FOR_USERNAME, [])),
-        ready_orders=len(orders.get(StarsOrderStatus.READY, [])),
-        unprocessed_orders=len(orders.get(StarsOrderStatus.UNPROCESSED, [])),
-    ).answer_to()
+    await MenuContext(menu_id='autostars:old_orders', trigger=m).answer_to()
 
 
 @router.message(Command('stars_status'))

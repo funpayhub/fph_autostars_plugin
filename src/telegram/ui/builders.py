@@ -11,7 +11,6 @@ from autostars.src.types.enums import (
 )
 from autostars.src.telegram.callbacks import ListOldOrders, OldOrdersAction
 from autostars.src.telegram.ui.context import (
-    OldOrdersMenuContext,
     StarsOrderMenuContext,
     OldOrdersListMenuContext,
     OrdersListMenuContext
@@ -144,11 +143,11 @@ class OldOrdersMenuBuilder(MenuBuilder, menu_id='autostars:old_orders', context_
 
         if not old_orders:
             menu.main_text = ru(
-                '<b>✅Нет незавершенных заказов с предыдущих запусков FunPay Hub.</b>'
+                '<b>✅ Нет незавершенных заказов с предыдущих запусков FunPay Hub.</b>'
             )
             return menu
 
-        total_len = reduce(lambda x, y: x + len(y), old_orders.values())
+        total_len = reduce(lambda x, y: x + len(y), old_orders.values(), 0)
         menu.main_text = ru(
             '<b>⚠️ Обнаружены заказы (<code>{orders_amount}</code>), которые были инициированы во время'
             ' предыдущего запуска FunPayHub, но так и не были завершены.</b>\n\n',
@@ -230,68 +229,71 @@ class OldOrdersListMenuBuilder(
     menu_id='autostars:old_orders_list',
     context_type=OldOrdersListMenuContext,
 ):
-    async def build(self, ctx: OldOrdersListMenuContext) -> Menu:
+    async def build(self, ctx: OldOrdersListMenuContext, hub: FPH, autostars_provider: AutostarsProvider) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
+        orders = await autostars_provider.storage.get_old_orders(hub.instance_id)
+        orders = orders.get(ctx.orders_status) or []
+
+        if not orders:
+            menu.header_text = ru(
+                '<b>Нет заказов с прошлых запусков со статусом <i><u>{status}</u></i></b>',
+                status=translater.translate(ctx.orders_status.desc).lower()
+            )
+            return menu
 
         menu.header_text = ru(
             '<b>Список заказов с прошлого запуска со статусом <i><u>{status}</u></i></b>.',
             status=ru(ctx.orders_status.desc).lower(),
         )
 
-        orders = ctx.orders[ctx.view_page * 50 : ctx.view_page * 50 + 50]
-        menu.header_keyboard = await build_view_navigation_btns(
-            ctx,
-            math.ceil(len(ctx.orders) / 50),
-        )
-
+        orders = orders[ctx.view_page * 50 : ctx.view_page * 50 + 50]
+        menu.header_keyboard = await build_view_navigation_btns(ctx, math.ceil(len(orders) / 50))
         menu.main_text = '\n'.join(self.gen_order_text(i) for i in orders)
+        menu.footer_text = ru('🛠️ Выберите, что делать с заказами.')
 
-        if orders:
-            menu.footer_text = ru('🛠️ Выберите, что делать с заказами.')
-
-            menu.main_keyboard.add_rows(
-                confirmable_button(
-                    ctx,
-                    text='♻️ Не игнорировать',
-                    button_id='dont_ignore',
-                    callback_data=OldOrdersAction(
-                        status=ctx.orders_status,
-                        action='dont_ignore',
-                        ui_history=ctx.as_ui_history()
-                    ).pack(),
-                ),
-                confirmable_button(
-                    ctx,
-                    text='✅ Пометить как выполненные',
-                    button_id='mark_done',
-                    callback_data=OldOrdersAction(
-                        status=ctx.orders_status,
-                        action='mark_done',
-                        ui_history=ctx.as_ui_history(),
-                    ).pack(),
-                ),
-                confirmable_button(
-                    ctx,
-                    text='💸 Пометить как возвращенные',
-                    button_id='mark_refunded',
-                    callback_data=OldOrdersAction(
-                        status=ctx.orders_status,
-                        action='mark_refunded',
-                        ui_history=ctx.as_ui_history(),
-                    ).pack(),
-                ),
-                confirmable_button(
-                    ctx,
-                    text='🗑️ Удалить',
-                    button_id='delete',
-                    callback_data=OldOrdersAction(
-                        status=ctx.orders_status,
-                        action='delete',
-                        ui_history=ctx.as_ui_history(),
-                    ).pack(),
-                    style='danger',
-                ),
-            )
+        menu.main_keyboard.add_rows(
+            confirmable_button(
+                ctx,
+                text='♻️ Не игнорировать',
+                button_id='dont_ignore',
+                callback_data=OldOrdersAction(
+                    status=ctx.orders_status,
+                    action='dont_ignore',
+                    ui_history=ctx.as_ui_history()
+                ).pack(),
+            ),
+            confirmable_button(
+                ctx,
+                text='✅ Пометить как выполненные',
+                button_id='mark_done',
+                callback_data=OldOrdersAction(
+                    status=ctx.orders_status,
+                    action='mark_done',
+                    ui_history=ctx.as_ui_history(),
+                ).pack(),
+            ),
+            confirmable_button(
+                ctx,
+                text='💸 Пометить как возвращенные',
+                button_id='mark_refunded',
+                callback_data=OldOrdersAction(
+                    status=ctx.orders_status,
+                    action='mark_refunded',
+                    ui_history=ctx.as_ui_history(),
+                ).pack(),
+            ),
+            confirmable_button(
+                ctx,
+                text='🗑️ Удалить',
+                button_id='delete',
+                callback_data=OldOrdersAction(
+                    status=ctx.orders_status,
+                    action='delete',
+                    ui_history=ctx.as_ui_history(),
+                ).pack(),
+                style='danger',
+            ),
+        )
 
         return menu
 
