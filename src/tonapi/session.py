@@ -11,6 +11,7 @@ from typing import Any
 
 from .methods import TonAPIMethod
 from .exceptions import TonAPIError, TonAPIParsingError, TonAPIUnexpectedStatus
+from autostars.src.logger import logger
 
 
 class Session:
@@ -65,6 +66,7 @@ class Session:
             else session.post(url=path, data=data, headers=headers)
         )
 
+        logger.info('Выполняю %s запрос к %s.', method.method, method.get_path())
         async with call as r:
             self._last_request_ts = time.monotonic()
             try:
