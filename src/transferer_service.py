@@ -133,7 +133,17 @@ class TransferrerService:
         )
 
     async def transfer_orders(self, wallet: Wallet, orders: dict[StarsOrder, Transfer]) -> None:
-        boc, in_hash = await wallet.create_external_transfer_message(*orders.values())
+        try:
+            boc, in_hash = await wallet.create_external_transfer_message(*orders.values())
+        except Exception:
+            logger.error('Ошибка перевода %s.', [i.order_id for i in orders], exc_info=True)
+            await self.update_orders(
+                *orders.keys(),
+                status=SOS.ERROR,
+                error=ErrorTypes.TRANSACTION_CREATION_ERROR,
+            )
+            return
+
         await self.update_orders(*orders.keys(), in_msg_hash=in_hash, status=SOS.TRANSFERRING)
 
         try:

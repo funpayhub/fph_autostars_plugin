@@ -69,6 +69,7 @@ class ErrorTypes(Enum):
     UNABLE_TO_FETCH_STARS_LINK = 'UNABLE_TO_FETCH_STARS_LINK'
     GET_BALANCE_ERROR = 'GET_BALANCE_ERROR'
     NOT_ENOUGH_TON = 'NOT_ENOUGH_TON'
+    TRANSACTION_CREATION_ERROR = 'TRANSACTION_CREATION_ERROR'
     TRANSFER_ERROR = 'TRANSFER_ERROR'
     TRANSACTION_TIMEOUT_ERROR = 'TRANSACTION_TIMEOUT_ERROR'
 
@@ -88,7 +89,8 @@ _error_desc = {
     ErrorTypes.UNABLE_TO_FETCH_STARS_LINK: 'Не удалось получить данные для перевода TON (ошибка Fragment API)',
     ErrorTypes.GET_BALANCE_ERROR: 'Не удалось получить баланс TON кошелька',
     ErrorTypes.NOT_ENOUGH_TON: 'Недостаточно TON',
-    ErrorTypes.TRANSFER_ERROR: 'Не удалось инициализировать перевод TON',
+    ErrorTypes.TRANSACTION_CREATION_ERROR: 'Не удалось создать и подписать транзакцию',
+    ErrorTypes.TRANSFER_ERROR: 'Не удалось отправить транзакцию в блокчейн',
     ErrorTypes.TRANSACTION_TIMEOUT_ERROR: 'Таймаут ожидания подтверждения транзакции',
     ErrorTypes.INVALID_USERNAME: 'Невалидные Telegram юзернейм (не подходит по паттерну)',
     ErrorTypes.USERNAME_NOT_FOUND: 'Telegram юзернейм не найден',

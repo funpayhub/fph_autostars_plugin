@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import asyncio
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from itertools import chain
 
 from aiogram.types import BufferedInputFile
@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 
 
 class AutostarsPlugin(Plugin):
-    def __init__(self, *args):
+    def __init__(self, *args: Any) -> None:
         super().__init__(*args)
 
         self.api = TonAPI()
