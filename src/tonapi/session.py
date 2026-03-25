@@ -7,6 +7,7 @@ from json import JSONDecodeError
 from aiohttp import TCPConnector, ClientSession, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from asyncio import Lock
+from typing import Any
 
 from .methods import TonAPIMethod
 from .exceptions import TonAPIError, TonAPIParsingError, TonAPIUnexpectedStatus
@@ -17,7 +18,7 @@ class Session:
         self.token = token
         self._session = session
         self._connector: TCPConnector | None = None
-        self._last_request_ts = 0
+        self._last_request_ts: int | float = 0
         self._headers = {
             'Accept': '*/*',
             'Content-Type': 'application/json',
@@ -42,7 +43,7 @@ class Session:
     async def __aenter__(self) -> ClientSession:
         return await self.session()
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
         await self.close()
 
     async def _make_request[ReturnT](self, method: TonAPIMethod[ReturnT]) -> ReturnT:
