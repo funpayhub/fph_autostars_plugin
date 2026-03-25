@@ -6,6 +6,7 @@ from json import JSONDecodeError
 
 from aiohttp import TCPConnector, ClientSession, ClientResponseError
 from pydantic import BaseModel, ValidationError
+from asyncio import Lock
 
 from .methods import TonAPIMethod
 from .exceptions import TonAPIError, TonAPIParsingError, TonAPIUnexpectedStatus
@@ -21,6 +22,7 @@ class Session:
             'Accept': '*/*',
             'Content-Type': 'application/json',
         }
+        self._requesting_lock = Lock()
 
     async def session(self) -> ClientSession:
         if not self._session or self._session.closed:
@@ -46,7 +48,7 @@ class Session:
     async def _make_request[ReturnT](self, method: TonAPIMethod[ReturnT]) -> ReturnT:
         interval = 4.1 if not self.token else 1.1
         if time.monotonic() - self._last_request_ts < interval:
-            await asyncio.sleep(time.monotonic() - self._last_request_ts + interval)
+            await asyncio.sleep(interval - (time.monotonic() - self._last_request_ts))
 
         session = await self.session()
         data = method.model_dump_json(by_alias=True)
@@ -91,7 +93,8 @@ class Session:
 
     async def make_request[ReturnT](self, method: TonAPIMethod[ReturnT]) -> ReturnT:
         try:
-            return await self._make_request(method)
+            async with self._requesting_lock:
+                return await self._make_request(method)
         except TonAPIError:
             raise
         except Exception as e:
