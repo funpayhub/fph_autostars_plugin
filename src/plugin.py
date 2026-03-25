@@ -56,7 +56,7 @@ class AutostarsPlugin(Plugin):
     def __init__(self, *args: Any) -> None:
         super().__init__(*args)
 
-        self.api = TonAPI()
+        self.tonapi = TonAPI()
         self.provider: AutostarsProvider | None = None
         self.callbacks = Callbacks(self)
 
@@ -82,7 +82,7 @@ class AutostarsPlugin(Plugin):
 
     async def properties(self) -> Properties:
         self.props = AutostarsProperties()
-        self.api.token = self.props.wallet.ton_api_token.value or None
+        self.tonapi.token = self.props.wallet.ton_api_token.value or None
         return self.props
 
     async def telegram_routers(self) -> TGRouter | list[TGRouter]:
@@ -150,7 +150,7 @@ class AutostarsPlugin(Plugin):
 
     async def post_setup(self) -> None:
         storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
-        self.provider = AutostarsProvider(TonAPI(), storage)
+        self.provider = AutostarsProvider(self.tonapi, storage)
 
         await self.check_old_transferring_orders()
 
