@@ -82,7 +82,6 @@ class AutostarsPlugin(Plugin):
 
     async def properties(self) -> Properties:
         self.props = AutostarsProperties()
-        self.tonapi.token = self.props.wallet.ton_api_token.value or None
         return self.props
 
     async def telegram_routers(self) -> TGRouter | list[TGRouter]:
@@ -149,6 +148,7 @@ class AutostarsPlugin(Plugin):
         return MODIFICATIONS
 
     async def post_setup(self) -> None:
+        self.tonapi.token = self.props.wallet.ton_api_token.value or None
         storage = await Sqlite3Storage.from_path('storage/autostars.sqlite3')
         self.provider = AutostarsProvider(self.tonapi, storage)
 
