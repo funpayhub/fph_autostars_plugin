@@ -62,7 +62,6 @@ async def success_tg_notification(
 ):
     menu = await OrdersListMenuContext(
         menu_id='autostars:orders_list',
-        chat_id=-1,
         header_text=ru('<b>✅ Транзакции по заказам успешно выполнены.</b>'),
         orders=event.stars_orders
     ).build_menu(tg_ui)

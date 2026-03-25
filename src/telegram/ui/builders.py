@@ -246,9 +246,9 @@ class OldOrdersListMenuBuilder(
             status=ru(ctx.orders_status.desc).lower(),
         )
 
-        orders = orders[ctx.view_page * 50 : ctx.view_page * 50 + 50]
+        curr_orders = orders[ctx.view_page * 50 : (ctx.view_page + 1) * 50]
         menu.header_keyboard = await build_view_navigation_btns(ctx, math.ceil(len(orders) / 50))
-        menu.main_text = '\n'.join(self.gen_order_text(i) for i in orders)
+        menu.main_text = '\n'.join(self.gen_order_text(i) for i in curr_orders)
         menu.footer_text = ru('🛠️ Выберите, что делать с заказами.')
 
         menu.main_keyboard.add_rows(
