@@ -21,7 +21,7 @@ class TonAPIParsingError(TonAPISessionError):
 class TonAPIUnexpectedStatus(TonAPISessionError):
     def __init__(self, method_path: str, status: int, error: str | None = None) -> None:
         super().__init__(
-            _ru('Произошла ошибка при запросе %s. Статус: %s. Ошиюка %s'),
+            _ru('Произошла ошибка при запросе %s. Статус: %s. Ошибка %s'),
             method_path,
             status,
             error,
