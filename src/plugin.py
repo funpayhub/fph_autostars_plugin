@@ -172,10 +172,12 @@ class AutostarsPlugin(Plugin):
                 self.hub.telegram.send_notification(
                     NotificationChannels.INFO,
                     self.hub.translater.translate(
-                        '<b>✅ TON кошелек <code>{address}</code> подключен.\n\n'
+                        '<b>✅ TON кошелек подключен.\n\n'
+                        '📬 Адрес <i>(non-bounceable)</i>: <code>{non_bounceable_addr}</code>\n'
+                        '📥 Адрес <i>(bounceable)</i>: <code>{bounceable_addr}</code>\n\n'
                         '💰Баланс: <code>{balance}</code> TON</b>',
-                    ).format(
-                        address=self.provider.wallet.address,
+                        bounceable_addr=self.provider.wallet.offline_wallet.address.to_str(is_bounceable=True),
+                        non_bounceable_addr=self.provider.wallet.offline_wallet.address.to_str(is_bounceable=False),
                         balance=self.provider.wallet._last_info.balance / 1_000_000_000,
                     ),
                 )
