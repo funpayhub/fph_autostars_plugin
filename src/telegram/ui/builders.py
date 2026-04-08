@@ -5,6 +5,8 @@ import math
 from functools import reduce
 from typing import TYPE_CHECKING
 
+from aiogram.types import InlineKeyboardButton, CopyTextButton
+
 from autostars.src.types.enums import (
     StarsOrderStatus,
     StarsOrderStatus as SOS,
@@ -17,7 +19,7 @@ from autostars.src.telegram.ui.context import (
 )
 
 from funpayhub.lib.translater import translater
-from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext
+from funpayhub.lib.telegram.ui import Menu, MenuBuilder, MenuContext, Button
 from funpayhub.lib.base_app.telegram.app.ui.ui_finalizers import (
     StripAndNavigationFinalizer,
     build_view_navigation_btns,
@@ -43,20 +45,21 @@ class StarsOrderInfoMenuBuilder(
 ):
     async def build(self, ctx: StarsOrderMenuContext) -> Menu:
         menu = Menu(finalizer=StripAndNavigationFinalizer())
-        menu.header_text = '🌟 <b>Заказ <a href="https://funpay.com/orders/{order_id}/">{order_id}</a></b>'.format(
+        menu.header_text = (
+            '🌟 <b>Заказ ''<a href="https://funpay.com/orders/{order_id}/">{order_id}</a> '
+            'от {username} на {amount} 🌟</b>.'
+        ).format(
             order_id=ctx.stars_order.order_id,
+            username=ctx.stars_order.order_preview.counterparty.username,
+            amount=ctx.stars_order.stars_amount
         )
         menu.main_text = ru(
             '<blockquote><b>{message}</b></blockquote>\n\n'
-            '🤠 <b><i>Покупатель: {buyer}</i></b>\n'
-            '✨ <b><i>Кол-во: {stars_amount}</i></b>\n'
             '👤 <b><i>Telegram: @{telegram_username}</i></b>\n'
             '🐙 <b><i>FunPay Hub ID:</i></b> <code>{hub_instance}</code>\n'
             '♻️ <b><i>Осталось попыток: {attempts}</i></b>\n'
             '📍 <b><i>Статус: {status}</i></b>\n',
             message=html.escape(ctx.stars_order.message_obj.text),
-            buyer=ctx.stars_order.order_preview.counterparty.username,
-            stars_amount=ctx.stars_order.stars_amount,
             telegram_username=html.escape(ctx.stars_order.telegram_username),
             status=ctx.stars_order.status.desc,
             hub_instance=ctx.stars_order.hub_instance,
@@ -94,7 +97,7 @@ class StarsOrderInfoMenuBuilder(
             )
 
             menu.header_keyboard.add_url_button(
-                button_id='open_transasction',
+                button_id='transaction_hash',
                 text='Открыть транзакцию',
                 url=f'https://tonviewer.com/transaction/{ctx.stars_order.transaction_hash}',
             )
