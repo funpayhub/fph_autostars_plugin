@@ -37,6 +37,10 @@ class InitBuyStarsRequest(FragmentMethod[BuyStarsResponse]):
     def method(self) -> str:
         return 'initBuyStarsRequest'
 
+    @computed_field
+    def payment_method(self) -> str:
+        return 'ton'
+
 
 class GetBuyStarsLink(FragmentMethod[BuyStarsLink]):
     request_id: str = Field(
